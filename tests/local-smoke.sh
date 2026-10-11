@@ -11,7 +11,11 @@ FAIL=0
 run_test() {
   local name="$1" method="$2" path="$3" expected_status="$4" expected_body="$5"
   local body status
-  body=$(curl -s -X "$method" -w $'\n%{http_code}' "${BASE_URL}${path}")
+  local extra=()
+  # POST/PUT without a body has no Content-Length, which Apigee rejects with 411.
+  # Send an empty body so the request reaches the proxy.
+  [[ "$method" != "GET" ]] && extra=(--data "")
+  body=$(curl -s -X "$method" "${extra[@]}" -w $'\n%{http_code}' "${BASE_URL}${path}")
   status="${body##*$'\n'}"
   body="${body%$'\n'*}"
 
