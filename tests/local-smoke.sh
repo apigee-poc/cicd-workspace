@@ -31,9 +31,9 @@ run_test() {
 }
 
 echo "Testing $BASE_URL"
-run_test "happy path"            GET  "/v1/hello?name=Asmaa"     200 '"message":"Hello, Asmaa!"'
+run_test "happy path"            GET  "/v1/hello?name=Rizk"     200 '"message":"Hello, Asmaa!"'
 run_test "missing name -> World" GET  "/v1/hello"                200 '"message":"Hello, World!"'
-run_test "invalid name (digits)" GET  "/v1/hello?name=Asmaa123"  400 '"error":"invalid_request"'
+run_test "invalid name (digits)" GET  "/v1/hello?name=Rizk123"  400 '"error":"invalid_request"'
 run_test "empty name"            GET  "/v1/hello?name="          400 '"error":"invalid_request"'
 run_test "wrong method"          POST "/v1/hello"                404 '"error":"not_found"'
 run_test "unknown sub-path"      GET  "/v1/hello/extra"          404 '"error":"not_found"'
