@@ -1,0 +1,27 @@
+# Dependencies and build output
+node_modules/
+target/
+dist/
+*.zip
+
+# Test reports (generated)
+reports/
+newman/
+
+# Credentials and secrets - never commit
+.env
+.env.*
+*.pem
+*.key
+*.p12
+service-account*.json
+*-sa-key.json
+credentials*.json
+gha-creds-*.json
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

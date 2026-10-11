@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<RaiseFault continueOnError="false" enabled="true" name="RF-Not-Found">
+  <DisplayName>RF-Not-Found</DisplayName>
+  <FaultResponse>
+    <Set>
+      <Payload contentType="application/json" variablePrefix="@" variableSuffix="#">{"error":"not_found","message":"Only GET /v1/hello is supported."}</Payload>
+      <StatusCode>404</StatusCode>
+      <ReasonPhrase>Not Found</ReasonPhrase>
+    </Set>
+  </FaultResponse>
+  <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+</RaiseFault>

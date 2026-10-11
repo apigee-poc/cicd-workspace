@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ProxyEndpoint name="default">
+  <Description>Single endpoint for GET /v1/hello. Anything else returns 404.</Description>
+  <PreFlow name="PreFlow">
+    <Request/>
+    <Response/>
+  </PreFlow>
+  <Flows>
+    <Flow name="get-hello">
+      <Description>GET /v1/hello?name={letters}</Description>
+      <Condition>(request.verb = "GET") and (proxy.pathsuffix = null or proxy.pathsuffix = "" or proxy.pathsuffix = "/")</Condition>
+      <Request>
+        <Step>
+          <Name>AM-Extract-Name</Name>
+        </Step>
+        <Step>
+          <Name>RF-Invalid-Name</Name>
+          <Condition>!(hello.name JavaRegex "^[A-Za-z]{1,30}$")</Condition>
+        </Step>
+      </Request>
+      <Response>
+        <Step>
+          <Name>AM-Hello-Response</Name>
+        </Step>
+      </Response>
+    </Flow>
+    <Flow name="not-found">
+      <Description>Catch-all for any other path or method</Description>
+      <Request>
+        <Step>
+          <Name>RF-Not-Found</Name>
+        </Step>
+      </Request>
+      <Response/>
+    </Flow>
+  </Flows>
+  <PostFlow name="PostFlow">
+    <Request/>
+    <Response/>
+  </PostFlow>
+  <HTTPProxyConnection>
+    <BasePath>/v1/hello</BasePath>
+  </HTTPProxyConnection>
+  <!-- No TargetEndpoint: the proxy builds the response itself (deterministic, no backend needed) -->
+  <RouteRule name="no-target"/>
+</ProxyEndpoint>

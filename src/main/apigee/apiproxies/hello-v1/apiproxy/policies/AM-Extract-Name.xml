@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage continueOnError="false" enabled="true" name="AM-Extract-Name">
+  <DisplayName>AM-Extract-Name</DisplayName>
+  <!-- If ?name is missing, Ref resolves to null and the default Value "World" is used.
+       If ?name is present but empty, hello.name is "" and validation rejects it. -->
+  <AssignVariable>
+    <Name>hello.name</Name>
+    <Ref>request.queryparam.name</Ref>
+    <Value>World</Value>
+  </AssignVariable>
+  <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+</AssignMessage>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<APIProxy name="hello-v1">
+  <DisplayName>hello-v1</DisplayName>
+  <Description>CI/CD POC proxy: GET /v1/hello?name=... returns a greeting as JSON. No backend target.</Description>
+</APIProxy>

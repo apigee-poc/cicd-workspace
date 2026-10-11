@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<RaiseFault continueOnError="false" enabled="true" name="RF-Invalid-Name">
+  <DisplayName>RF-Invalid-Name</DisplayName>
+  <FaultResponse>
+    <Set>
+      <Payload contentType="application/json" variablePrefix="@" variableSuffix="#">{"error":"invalid_request","message":"Query parameter 'name' must be 1-30 letters (A-Z, a-z)."}</Payload>
+      <StatusCode>400</StatusCode>
+      <ReasonPhrase>Bad Request</ReasonPhrase>
+    </Set>
+  </FaultResponse>
+  <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+</RaiseFault>
