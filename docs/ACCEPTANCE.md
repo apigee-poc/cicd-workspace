@@ -47,7 +47,7 @@ Run each command and tick the box when it works.
 ## Day 1 checkpoint
 
 - [ ] Proxy redeployed from the workspace to the emulator
-- [ ] `./tests/local-smoke.sh` passes (all tests green)
+- [ ] `./tests/hello-v1.postman_collection.json` passes (all tests green)
 - [ ] Stable baseline committed and pushed
 - [ ] Blockers for Day 2 listed below
 

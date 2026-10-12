@@ -21,7 +21,8 @@ It has **no backend target**, so its behaviour is fully predictable.
    ```
 
 6. Run the local tests.
-
+  npm install          # once, after cloning
+  npm run test:local   # emulator must be running with env "dev" deployed
    Windows (PowerShell, using Git Bash):
 
    ```powershell

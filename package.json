@@ -8,7 +8,8 @@
     "test": "tests"
   },
 "scripts": {
-  "lint": "apigeelint -s src/main/apigee/apiproxies/hello-v1/apiproxy -f table.js --profile apigeex"
+  "lint": "apigeelint -s src/main/apigee/apiproxies/hello-v1/apiproxy -f table.js --profile apigeex",
+  "test:local": "newman run tests/hello-v1.postman_collection.json -e tests/environments/local.postman_environment.json --reporters cli,junit --reporter-junit-export reports/newman-local.xml"
 },
   "repository": {
     "type": "git",
@@ -23,6 +24,7 @@
   },
   "homepage": "https://github.com/apigee-poc/cicd-workspace#readme",
   "devDependencies": {
-    "apigeelint": "2.85.1"
+    "apigeelint": "2.85.1",
+    "newman": "6.2.3"
   }
 }
