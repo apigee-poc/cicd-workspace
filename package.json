@@ -9,7 +9,8 @@
   },
 "scripts": {
 "lint": "apigeelint -s src/main/apigee/apiproxies/hello-v1/apiproxy -f table.js --profile apigeex --maxWarnings 0",
-"test:local": "newman run tests/hello-v1.postman_collection.json -e tests/environments/local.postman_environment.json --reporters cli,junit --reporter-junit-export reports/newman-local.xml"
+"test:local": "newman run tests/hello-v1.postman_collection.json -e tests/environments/local.postman_environment.json --reporters cli,junit --reporter-junit-export reports/newman-local.xml",
+"package": "mvn -f src/main/apigee/apiproxies/hello-v1/pom.xml clean package -Pdev"
 },
   "repository": {
     "type": "git",

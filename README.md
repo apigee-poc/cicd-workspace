@@ -149,3 +149,11 @@ Rules:
   exception here with the reason. Do not disable rules broadly.
 - Tool versions are pinned in `package-lock.json`, so local and CI results match.
 - Deployment (Day 3+) only runs after gates 1 and 2 pass.
+## Packaging and deployment
+
+Package the proxy bundle (no call to Apigee):
+
+    npm run package
+
+Output: `src/main/apigee/apiproxies/hello-v1/target/hello-v1-1.0.zip`.
+Environments, deploy and promote commands: see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).

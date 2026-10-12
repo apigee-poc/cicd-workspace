@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Shared (parent) POM: build steps and per-environment deployment profiles.
+  Kept outside the proxy source on purpose: the proxy bundle is the same for every
+  environment; only these profiles change.
+
+  No secrets here. The access token is passed at run time:
+    -Dbearer=$(gcloud auth print-access-token)
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>apigee-poc</groupId>
+  <artifactId>parent-pom</artifactId>
+  <version>1.0</version>
+  <packaging>pom</packaging>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- Apigee org name = GCP project ID. Check these match your projects. -->
+    <nonprod.org>apigee-nonprod-511322</nonprod.org>
+    <prod.org>apigee-prod-511313</prod.org>
+  </properties>
+
+  <build>
+    <plugins>
+      <!-- Copy the proxy bundle (apiproxy/ next to the child pom) into target/apiproxy -->
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.3.1</version>
+        <executions>
+          <execution>
+            <id>copy-apiproxy</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <overwrite>true</overwrite>
+              <outputDirectory>${project.basedir}/target/apiproxy</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>apiproxy</directory>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Apigee Deploy Maven Plugin, 2.x is the line for Apigee X / hybrid. Version pinned. -->
+      <plugin>
+        <groupId>io.apigee.build-tools.enterprise4g</groupId>
+        <artifactId>apigee-edge-maven-plugin</artifactId>
+        <version>2.5.2</version>
+        <executions>
+          <!-- package phase: build the bundle (no call to Apigee) -->
+          <execution>
+            <id>configure-bundle</id>
+            <phase>package</phase>
+            <goals>
+              <goal>configure</goal>
+            </goals>
+          </execution>
+          <!-- install phase: import + deploy to the profile's org/env (needs -Dbearer) -->
+          <execution>
+            <id>deploy-bundle</id>
+            <phase>install</phase>
+            <goals>
+              <goal>deploy</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <!-- One profile per Apigee environment. Select with -P<id>. -->
+  <profiles>
+    <profile>
+      <id>dev</id>
+      <properties>
+        <apigee.profile>dev</apigee.profile>
+        <apigee.hosturl>https://apigee.googleapis.com</apigee.hosturl>
+        <apigee.apiversion>v1</apigee.apiversion>
+        <apigee.org>${nonprod.org}</apigee.org>
+        <apigee.env>dev</apigee.env>
+        <apigee.authtype>oauth</apigee.authtype>
+        <apigee.bearer>${bearer}</apigee.bearer>
+        <apigee.options>override</apigee.options>
+      </properties>
+    </profile>
+    <profile>
+      <id>staging</id>
+      <properties>
+        <apigee.profile>staging</apigee.profile>
+        <apigee.hosturl>https://apigee.googleapis.com</apigee.hosturl>
+        <apigee.apiversion>v1</apigee.apiversion>
+        <apigee.org>${nonprod.org}</apigee.org>
+        <apigee.env>staging</apigee.env>
+        <apigee.authtype>oauth</apigee.authtype>
+        <apigee.bearer>${bearer}</apigee.bearer>
+        <apigee.options>override</apigee.options>
+      </properties>
+    </profile>
+    <profile>
+      <id>prod</id>
+      <!-- Out of scope for the demo; kept so the promotion path is complete. -->
+      <properties>
+        <apigee.profile>prod</apigee.profile>
+        <apigee.hosturl>https://apigee.googleapis.com</apigee.hosturl>
+        <apigee.apiversion>v1</apigee.apiversion>
+        <apigee.org>${prod.org}</apigee.org>
+        <apigee.env>prod</apigee.env>
+        <apigee.authtype>oauth</apigee.authtype>
+        <apigee.bearer>${bearer}</apigee.bearer>
+        <apigee.options>override</apigee.options>
+      </properties>
+    </profile>
+  </profiles>
+</project>
