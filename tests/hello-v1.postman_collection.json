@@ -1,18 +1,49 @@
 {
   "info": {
-    "_postman_id": "c5df8a92-9d23-4bab-a0d4-582e01ef96d3",
+    "_postman_id": "84db09fe-e800-463d-b784-05915eaec361",
     "name": "hello-v1",
-    "description": "Requests for the hello-v1 proxy. Set baseUrl per environment (local emulator: http://localhost:8998).",
+    "description": "Functional tests for the hello-v1 proxy. Set baseUrl per environment (local emulator: http://localhost:8998). Run with Newman in CI.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Runs after every request in this collection",
+          "pm.test(\"Content-Type is application/json\", function () {",
+          "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+          "});"
+        ]
+      }
+    }
+  ],
   "item": [
     {
       "name": "happy path",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Body has the expected greeting\", function () {",
+              "    pm.expect(pm.response.json().message).to.eql(\"Hello, Rizk!\");",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/hello?name=Asmaa",
+          "raw": "{{baseUrl}}/v1/hello?name=Rizk",
           "host": [
             "{{baseUrl}}"
           ],
@@ -23,7 +54,49 @@
           "query": [
             {
               "key": "name",
-              "value": "Asmaa"
+              "value": "Rizk"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "trailing slash",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Body has the expected greeting\", function () {",
+              "    pm.expect(pm.response.json().message).to.eql(\"Hello, Rizk!\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/hello/?name=Rizk",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "hello",
+            ""
+          ],
+          "query": [
+            {
+              "key": "name",
+              "value": "Rizk"
             }
           ]
         }
@@ -32,6 +105,23 @@
     },
     {
       "name": "missing name -> World",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Body has the expected greeting\", function () {",
+              "    pm.expect(pm.response.json().message).to.eql(\"Hello, World!\");",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "GET",
         "header": [],
@@ -50,11 +140,30 @@
     },
     {
       "name": "invalid name (digits)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"Body has error invalid_request\", function () {",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.error).to.eql(\"invalid_request\");",
+              "    pm.expect(body.message).to.be.a(\"string\").and.not.empty;",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/v1/hello?name=Asmaa123",
+          "raw": "{{baseUrl}}/v1/hello?name=Rizk123",
           "host": [
             "{{baseUrl}}"
           ],
@@ -65,7 +174,7 @@
           "query": [
             {
               "key": "name",
-              "value": "Asmaa123"
+              "value": "Rizk123"
             }
           ]
         }
@@ -74,6 +183,25 @@
     },
     {
       "name": "empty name",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"Body has error invalid_request\", function () {",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.error).to.eql(\"invalid_request\");",
+              "    pm.expect(body.message).to.be.a(\"string\").and.not.empty;",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "GET",
         "header": [],
@@ -98,6 +226,25 @@
     },
     {
       "name": "wrong method",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 404\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test(\"Body has error not_found\", function () {",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.error).to.eql(\"not_found\");",
+              "    pm.expect(body.message).to.be.a(\"string\").and.not.empty;",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [],
@@ -120,6 +267,25 @@
     },
     {
       "name": "unknown sub-path",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status is 404\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test(\"Body has error not_found\", function () {",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.error).to.eql(\"not_found\");",
+              "    pm.expect(body.message).to.be.a(\"string\").and.not.empty;",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "GET",
         "header": [],
