@@ -1,0 +1,28 @@
+{
+  "name": "cicd-workspace",
+  "version": "1.0.0",
+  "description": "A minimal Apigee API proxy used to practise a full CI/CD flow: local development → lint → automated tests → packaging → deployment → promotion.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+"scripts": {
+  "lint": "apigeelint -s src/main/apigee/apiproxies/hello-v1/apiproxy -f table.js --profile apigeex"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apigee-poc/cicd-workspace.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/apigee-poc/cicd-workspace/issues"
+  },
+  "homepage": "https://github.com/apigee-poc/cicd-workspace#readme",
+  "devDependencies": {
+    "apigeelint": "2.85.1"
+  }
+}
