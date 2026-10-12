@@ -124,3 +124,28 @@ What changes per environment is only *where* it runs:
 - **Day 2** – apigeelint, Postman/Newman tests, Maven packaging
 - **Day 3** – deploy to non-prod `dev`, GitHub Actions CI
 - **Day 4** – CI deployment stage, post-deploy tests, promotion to `staging`
+
+## Unit tests
+
+Not applicable: the proxy has no JavaScript resources (only AssignMessage and
+RaiseFault policies, no `resources/jsc`). Its logic is fully covered by the
+functional tests in `tests/hello-v1.postman_collection.json`.
+
+If a JavaScript policy is added later, add unit tests with Mocha + Chai,
+measure coverage with nyc, and add a coverage gate (see Quality gates).
+
+## Quality gates
+
+Every gate must pass. If any gate fails, the pipeline stops and nothing is deployed.
+
+| # | Gate | Command | Passes when |
+|---|---|---|---|
+| 1 | Static analysis | `npm run lint` | 0 errors and 0 warnings (`--maxWarnings 0`) |
+| 2 | Functional tests | `npm run test:local` (CI: same collection against the deployed env) | All Newman assertions pass |
+| 3 | JS unit test coverage | — | Not applicable (no JavaScript in the proxy) |
+
+Rules:
+- A warning is treated as a failure. To accept a warning, fix it or document an
+  exception here with the reason. Do not disable rules broadly.
+- Tool versions are pinned in `package-lock.json`, so local and CI results match.
+- Deployment (Day 3+) only runs after gates 1 and 2 pass.
