@@ -13,22 +13,34 @@ It has **no backend target**, so its behaviour is fully predictable.
    (the workspace root is `src/main/apigee`).
 3. In the **Apigee Emulators** panel, start an emulator container
    (note its traffic port; the default is `8998`).
-4. Under **Apigee workspace → environments → local**, click **Deploy to Apigee Emulator**.
+4. Under **Apigee workspace → environments → dev**, click **Deploy to Apigee Emulator**.
 5. Call the API:
 
    ```bash
    curl -i "http://localhost:8998/v1/hello?name=Asmaa"
    ```
 
-6. Run the local tests:
+6. Run the local tests.
+
+   Windows (PowerShell, using Git Bash):
+
+   ```powershell
+   & "C:\Program Files\Git\bin\bash.exe" tests/local-smoke.sh
+   # different emulator port:
+   & "C:\Program Files\Git\bin\bash.exe" -c "BASE_URL=http://localhost:9000 ./tests/local-smoke.sh"
+   ```
+
+   Linux / macOS / Git Bash:
 
    ```bash
    ./tests/local-smoke.sh
-   # or, if your emulator uses a different port:
    BASE_URL=http://localhost:9000 ./tests/local-smoke.sh
    ```
 
-   On Windows, run the script from Git Bash or WSL.
+   Note: in PowerShell, plain `bash` may start WSL instead of Git Bash and fail.
+
+7. Or use Postman: import `tests/hello-v1.postman_collection.json`.
+   It uses a `{{baseUrl}}` collection variable (default `http://localhost:8998`).
 
 ## Endpoint behaviour
 
@@ -64,10 +76,12 @@ src/main/apigee/
 │       ├── RF-Invalid-Name.xml      # 400 when name is not 1-30 letters
 │       ├── AM-Hello-Response.xml    # builds the 200 JSON response
 │       └── RF-Not-Found.xml         # 404 for any other method/path
-└── environments/local/
-    └── deployments.json             # proxies deployed to the emulator
+└── environments/dev/
+    ├── deployments.json             # proxies deployed to the emulator
+    └── *.json                       # emulator env config created by Cloud Code (empty for now)
 tests/
-└── local-smoke.sh                   # repeatable local tests (exit code 1 on failure)
+├── local-smoke.sh                   # repeatable local tests (exit code 1 on failure)
+└── hello-v1.postman_collection.json # same 6 requests for Postman (baseUrl variable)
 docs/
 └── ACCEPTANCE.md                    # scope, acceptance criteria, prerequisites
 ```
@@ -91,14 +105,17 @@ What changes per environment is only *where* it runs:
 |---|---|---|---|
 | Base URL | `http://localhost:8998` | env group hostname for `dev` | env group hostname for `staging` |
 | Apigee org | – (emulator) | non-prod project ID | non-prod project ID |
-| Apigee environment | `local` | `dev` | `staging` |
+| Apigee environment | `dev` (emulator workspace env) | `dev` | `staging` |
 | Deploy identity | none | CI service account (Day 3–4) | CI service account (Day 4) |
 
 ## Emulator limitations (recorded during Day 1)
 
 - Runs only on `localhost:<port>`; there are no environment groups or hostnames like in Apigee X.
 - No analytics or monitoring dashboards.
-- _Add anything else you notice while testing._
+- POST/PUT requests without a body and without `Content-Length` are rejected by the
+  Apigee runtime with 411 before reaching the proxy. Clients must send
+  `Content-Length: 0` (Postman does this automatically; curl needs `--data ""`).
+- Emulator version used: _fill in from the Cloud Code emulator panel_.
 
 ## Roadmap
 

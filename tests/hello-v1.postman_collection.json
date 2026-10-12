@@ -1,0 +1,148 @@
+{
+  "info": {
+    "_postman_id": "c5df8a92-9d23-4bab-a0d4-582e01ef96d3",
+    "name": "hello-v1",
+    "description": "Requests for the hello-v1 proxy. Set baseUrl per environment (local emulator: http://localhost:8998).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "happy path",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/hello?name=Asmaa",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "hello"
+          ],
+          "query": [
+            {
+              "key": "name",
+              "value": "Asmaa"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "missing name -> World",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/hello",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "hello"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "invalid name (digits)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/hello?name=Asmaa123",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "hello"
+          ],
+          "query": [
+            {
+              "key": "name",
+              "value": "Asmaa123"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "empty name",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/hello?name=",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "hello"
+          ],
+          "query": [
+            {
+              "key": "name",
+              "value": ""
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "wrong method",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/hello",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "hello"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "unknown sub-path",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/hello/extra",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "hello",
+            "extra"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8998",
+      "type": "string"
+    }
+  ]
+}
