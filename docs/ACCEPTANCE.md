@@ -9,7 +9,7 @@ It has no backend target: the proxy builds the response itself, so results are d
 |---|---|
 | Proxy name | `hello-v1` |
 | Base path | `/v1/hello` |
-| Local runtime | Apigee Emulator (Cloud Code for VS Code), environment `local` |
+| Local runtime | Apigee Emulator (Cloud Code for VS Code), workspace environment `dev` |
 | Later integration target (Day 3) | Apigee eval org in the non-prod project, environment `dev` |
 | Later promotion target (Day 4) | Same org, environment `staging` |
 
