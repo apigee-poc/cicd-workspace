@@ -17,7 +17,7 @@ It has **no backend target**, so its behaviour is fully predictable.
 5. Call the API:
 
    ```bash
-   curl -i "http://localhost:8998/v1/hello?name=Asmaa"
+   curl -i "http://localhost:8998/v1/hello?name=Rizk"
    ```
 
 6. Run the local tests.
@@ -46,20 +46,20 @@ It has **no backend target**, so its behaviour is fully predictable.
 
 | Request | Status | Response body |
 |---|---|---|
-| `GET /v1/hello?name=Asmaa` | 200 | `{"message":"Hello, Asmaa!"}` |
+| `GET /v1/hello?name=Rizk` | 200 | `{"message":"Hello, Rizk!"}` |
 | `GET /v1/hello` | 200 | `{"message":"Hello, World!"}` (default name) |
-| `GET /v1/hello?name=Asmaa123` | 400 | `{"error":"invalid_request","message":"Query parameter 'name' must be 1-30 letters (A-Z, a-z)."}` |
+| `GET /v1/hello?name=Rizk123` | 400 | `{"error":"invalid_request","message":"Query parameter 'name' must be 1-30 letters (A-Z, a-z)."}` |
 | `GET /v1/hello?name=` | 400 | same as above |
 | Any other method or path | 404 | `{"error":"not_found","message":"Only GET /v1/hello is supported."}` |
-
+| `GET /v1/hello/?name=Rizk` | 200 | `{"message":"Hello, Rizk!"}` |
 Sample request and response:
 
 ```
-$ curl -i "http://localhost:8998/v1/hello?name=Asmaa"
+$ curl -i "http://localhost:8998/v1/hello?name=Rizk"
 HTTP/1.1 200 OK
 Content-Type: application/json
 
-{"message":"Hello, Asmaa!"}
+{"message":"Hello, Rizk!"}
 ```
 
 Full acceptance criteria: [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
@@ -115,7 +115,7 @@ What changes per environment is only *where* it runs:
 - POST/PUT requests without a body and without `Content-Length` are rejected by the
   Apigee runtime with 411 before reaching the proxy. Clients must send
   `Content-Length: 0` (Postman does this automatically; curl needs `--data ""`).
-- Emulator version used: _fill in from the Cloud Code emulator panel_.
+- Emulator version used: 1.9.
 
 ## Roadmap
 

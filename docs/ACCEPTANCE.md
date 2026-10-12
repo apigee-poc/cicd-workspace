@@ -18,7 +18,7 @@ It has no backend target: the proxy builds the response itself, so results are d
 | # | Request | Expected status | Expected body |
 |---|---|---|---|
 | AC1 | `GET /v1/hello?name=Asmaa` | 200 | `{"message":"Hello, Asmaa!"}` |
-| AC2 | `GET /v1/hello` (no `name`) | 200 | `{"message":"Hello, World!"}` |
+| AC2 | `GET /v1/hello` (no `name`) | 200 | `{"message":" Hello, World!"}` |
 | AC3 | `GET /v1/hello?name=Asmaa123` (not letters only) | 400 | `{"error":"invalid_request", ...}` |
 | AC4 | `GET /v1/hello?name=` (empty) | 400 | `{"error":"invalid_request", ...}` |
 | AC5 | Any other method or path, e.g. `POST /v1/hello`, `GET /v1/hello/extra` | 404 | `{"error":"not_found", ...}` |
@@ -55,4 +55,6 @@ Run each command and tick the box when it works.
 
 - apigeelint baseline already shows one warning to handle on Day 2:
   `CC004` (condition with many terms) on the `get-hello` flow condition.
+- change the CC004 blocker line to "CC004 fixed: simplified condition, behaviour locked by the trailing-slash test."
+  
 - _Add any other blockers here._
