@@ -6,53 +6,55 @@ local development → lint → automated tests → packaging → deployment → 
 The proxy exposes one endpoint, `GET /v1/hello?name=...`, and returns a JSON greeting.
 It has **no backend target**, so its behaviour is fully predictable.
 
+## Prerequisites
+
+Docker, VS Code + Cloud Code, Git, Node.js + npm, Java 17, Maven 3.9.
+Versions in use are recorded in [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
+
 ## Quick start (local emulator)
 
-1. Clone the repo and open the folder in VS Code.
-2. In **Cloud Code → Apigee**, open this folder as the Apigee workspace
+1. Clone the repo and install the npm tools (once):
+
+   ```powershell
+   npm install
+   ```
+
+2. Open the folder in VS Code. In **Cloud Code → Apigee**, open it as the Apigee workspace
    (the workspace root is `src/main/apigee`).
 3. In the **Apigee Emulators** panel, start an emulator container
    (note its traffic port; the default is `8998`).
 4. Under **Apigee workspace → environments → dev**, click **Deploy to Apigee Emulator**.
 5. Call the API:
 
-   ```bash
-   curl -i "http://localhost:8998/v1/hello?name=Rizk"
+   ```powershell
+   curl.exe -i "http://localhost:8998/v1/hello?name=Rizk"
    ```
 
-6. Run the local tests.
-  npm install          # once, after cloning
-  npm run test:local   # emulator must be running with env "dev" deployed
-   Windows (PowerShell, using Git Bash):
+6. Run the checks:
 
    ```powershell
-   & "C:\Program Files\Git\bin\bash.exe" tests/local-smoke.sh
-   # different emulator port:
-   & "C:\Program Files\Git\bin\bash.exe" -c "BASE_URL=http://localhost:9000 ./tests/local-smoke.sh"
+   npm run lint         # gate 1: static analysis
+   npm run test:local   # gate 2: functional tests against the emulator
+   npm run package      # build the deployable bundle with Maven
    ```
 
-   Linux / macOS / Git Bash:
+   If your emulator uses a different port, change `baseUrl` in
+   `tests/environments/local.postman_environment.json` (don't commit that change).
 
-   ```bash
-   ./tests/local-smoke.sh
-   BASE_URL=http://localhost:9000 ./tests/local-smoke.sh
-   ```
-
-   Note: in PowerShell, plain `bash` may start WSL instead of Git Bash and fail.
-
-7. Or use Postman: import `tests/hello-v1.postman_collection.json`.
-   It uses a `{{baseUrl}}` collection variable (default `http://localhost:8998`).
+7. Or use Postman: import `tests/hello-v1.postman_collection.json` and
+   `tests/environments/local.postman_environment.json`.
 
 ## Endpoint behaviour
 
 | Request | Status | Response body |
 |---|---|---|
 | `GET /v1/hello?name=Rizk` | 200 | `{"message":"Hello, Rizk!"}` |
+| `GET /v1/hello/?name=Rizk` | 200 | `{"message":"Hello, Rizk!"}` (trailing slash is accepted) |
 | `GET /v1/hello` | 200 | `{"message":"Hello, World!"}` (default name) |
 | `GET /v1/hello?name=Rizk123` | 400 | `{"error":"invalid_request","message":"Query parameter 'name' must be 1-30 letters (A-Z, a-z)."}` |
 | `GET /v1/hello?name=` | 400 | same as above |
 | Any other method or path | 404 | `{"error":"not_found","message":"Only GET /v1/hello is supported."}` |
-| `GET /v1/hello/?name=Rizk` | 200 | `{"message":"Hello, Rizk!"}` |
+
 Sample request and response:
 
 ```
@@ -68,28 +70,39 @@ Full acceptance criteria: [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
 ## Project structure
 
 ```
+deploy/
+└── shared-pom.xml                   # Maven parent: plugins + dev/staging/prod profiles
 src/main/apigee/
-├── apiproxies/hello-v1/apiproxy/
-│   ├── hello-v1.xml                 # proxy descriptor
-│   ├── proxies/default.xml          # ProxyEndpoint: base path, flows, no-target route
-│   └── policies/
-│       ├── AM-Extract-Name.xml      # reads ?name, defaults to "World"
-│       ├── RF-Invalid-Name.xml      # 400 when name is not 1-30 letters
-│       ├── AM-Hello-Response.xml    # builds the 200 JSON response
-│       └── RF-Not-Found.xml         # 404 for any other method/path
+├── apiproxies/hello-v1/
+│   ├── pom.xml                      # Maven child pom for this proxy
+│   └── apiproxy/
+│       ├── hello-v1.xml             # proxy descriptor
+│       ├── proxies/default.xml      # ProxyEndpoint: base path, flows, no-target route
+│       └── policies/
+│           ├── AM-Extract-Name.xml  # reads ?name, defaults to "World"
+│           ├── RF-Invalid-Name.xml  # 400 when name is not 1-30 letters
+│           ├── AM-Hello-Response.xml# builds the 200 JSON response
+│           └── RF-Not-Found.xml     # 404 for any other method/path
 └── environments/dev/
     ├── deployments.json             # proxies deployed to the emulator
-    └── *.json                       # emulator env config created by Cloud Code (empty for now)
+    └── *.json                       # emulator env config created by Cloud Code
 tests/
-├── local-smoke.sh                   # repeatable local tests (exit code 1 on failure)
-└── hello-v1.postman_collection.json # same 6 requests for Postman (baseUrl variable)
+├── hello-v1.postman_collection.json # 7 requests, 21 assertions (single source of tests)
+└── environments/
+    └── local.postman_environment.json  # baseUrl for the local emulator
 docs/
-└── ACCEPTANCE.md                    # scope, acceptance criteria, prerequisites
+├── ACCEPTANCE.md                    # scope, acceptance criteria, prerequisites
+├── DEPLOYMENT.md                    # environments, deploy/promote commands, resources
+├── apigeelint-baseline.txt          # lint before the CC004 fix
+└── apigeelint-after-fix.txt         # lint after the fix (0 errors, 0 warnings)
+package.json / package-lock.json     # pinned apigeelint + newman, npm scripts
 ```
+
+Generated, never committed: `node_modules/`, `reports/`, `**/target/`.
 
 ## How the proxy works
 
-1. The `get-hello` flow runs only for `GET` on the base path itself.
+1. The `get-hello` flow runs only for `GET` on the base path itself (with or without a trailing slash).
 2. `AM-Extract-Name` copies `request.queryparam.name` into `hello.name`;
    if the parameter is missing, it uses `World`.
 3. `RF-Invalid-Name` runs only when `hello.name` doesn't match `^[A-Za-z]{1,30}$`
@@ -105,8 +118,10 @@ What changes per environment is only *where* it runs:
 | Setting | local | dev (non-prod) | staging (non-prod) |
 |---|---|---|---|
 | Base URL | `http://localhost:8998` | env group hostname for `dev` | env group hostname for `staging` |
-| Apigee org | – (emulator) | non-prod project ID | non-prod project ID |
+| Postman environment file | `local.postman_environment.json` | `dev.postman_environment.json` (Day 3) | `staging.postman_environment.json` (Day 4) |
+| Apigee org | – (emulator) | `apigee-nonprod-511322` | `apigee-nonprod-511322` |
 | Apigee environment | `dev` (emulator workspace env) | `dev` | `staging` |
+| Maven profile | – | `-Pdev` | `-Pstaging` |
 | Deploy identity | none | CI service account (Day 3–4) | CI service account (Day 4) |
 
 ## Emulator limitations (recorded during Day 1)
@@ -117,13 +132,6 @@ What changes per environment is only *where* it runs:
   Apigee runtime with 411 before reaching the proxy. Clients must send
   `Content-Length: 0` (Postman does this automatically; curl needs `--data ""`).
 - Emulator version used: 1.9.
-
-## Roadmap
-
-- **Day 1** – proxy, local tests, repository ✅
-- **Day 2** – apigeelint, Postman/Newman tests, Maven packaging
-- **Day 3** – deploy to non-prod `dev`, GitHub Actions CI
-- **Day 4** – CI deployment stage, post-deploy tests, promotion to `staging`
 
 ## Unit tests
 
@@ -149,6 +157,7 @@ Rules:
   exception here with the reason. Do not disable rules broadly.
 - Tool versions are pinned in `package-lock.json`, so local and CI results match.
 - Deployment (Day 3+) only runs after gates 1 and 2 pass.
+
 ## Packaging and deployment
 
 Package the proxy bundle (no call to Apigee):
@@ -157,3 +166,10 @@ Package the proxy bundle (no call to Apigee):
 
 Output: `src/main/apigee/apiproxies/hello-v1/target/hello-v1-1.0.zip`.
 Environments, deploy and promote commands: see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## Roadmap
+
+- **Day 1** – proxy, local tests, repository ✅
+- **Day 2** – apigeelint, Postman/Newman tests, quality gates, Maven packaging ✅
+- **Day 3** – deploy to non-prod `dev`, GitHub Actions CI
+- **Day 4** – CI deployment stage, post-deploy tests, promotion to `staging`
