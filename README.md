@@ -6,7 +6,7 @@ local development → lint → automated tests → packaging → deployment → 
 The proxy exposes one endpoint, `GET /v1/hello?name=...`, and returns a JSON greeting.
 It has **no backend target**, so its behaviour is fully predictable.
 
-## Prerequisites
+## Prerequisites 
 
 Docker, VS Code + Cloud Code, Git, Node.js + npm, Java 17, Maven 3.9.
 Versions in use are recorded in [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
@@ -173,3 +173,4 @@ Environments, deploy and promote commands: see [docs/DEPLOYMENT.md](docs/DEPLOYM
 - **Day 2** – apigeelint, Postman/Newman tests, quality gates, Maven packaging ✅
 - **Day 3** – deploy to non-prod `dev`, GitHub Actions CI
 - **Day 4** – CI deployment stage, post-deploy tests, promotion to `staging`
+-
