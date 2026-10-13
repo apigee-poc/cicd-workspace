@@ -45,3 +45,8 @@ manually or by automation.
 - No credential is stored in this repo.
 - Locally: `gcloud auth print-access-token` (your own Google account).
 - In CI (Day 3–4): a service account in `ci-cd-511313` via Workload Identity Federation.
+
+| Identity | Used for | Roles on apigee-nonprod-511322 |
+|---|---|---|
+| Your Google account | Manual deploys (Day 3) | Project Owner (existing) |
+| CI service account in ci-cd-511313 | GitHub Actions deploys (Day 3–4) | roles/apigee.apiAdminV2, roles/apigee.environmentAdmin |
