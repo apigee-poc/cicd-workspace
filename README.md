@@ -6,7 +6,7 @@ local development → lint → automated tests → packaging → deployment → 
 The proxy exposes one endpoint, `GET /v1/hello?name=...`, and returns a JSON greeting.
 It has **no backend target**, so its behaviour is fully predictable.
 
-## Prerequisites 
+## Prerequisites
 
 Docker, VS Code + Cloud Code, Git, Node.js + npm, Java 17, Maven 3.9.
 Versions in use are recorded in [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
@@ -41,6 +41,12 @@ Versions in use are recorded in [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
    If your emulator uses a different port, change `baseUrl` in
    `tests/environments/local.postman_environment.json` (don't commit that change).
 
+   After a deploy to Apigee `dev`, run the same tests against it:
+
+   ```powershell
+   npm run test:dev     # post-deploy tests against https://35.201.86.122.nip.io
+   ```
+
 7. Or use Postman: import `tests/hello-v1.postman_collection.json` and
    `tests/environments/local.postman_environment.json`.
 
@@ -70,6 +76,8 @@ Full acceptance criteria: [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
 ## Project structure
 
 ```
+.github/workflows/
+└── ci.yml                           # CI: lint gate, Maven package, bundle artifact
 deploy/
 └── shared-pom.xml                   # Maven parent: plugins + dev/staging/prod profiles
 src/main/apigee/
@@ -89,7 +97,10 @@ src/main/apigee/
 tests/
 ├── hello-v1.postman_collection.json # 7 requests, 21 assertions (single source of tests)
 └── environments/
-    └── local.postman_environment.json  # baseUrl for the local emulator
+    ├── local.postman_environment.json  # baseUrl for the local emulator
+    └── dev.postman_environment.json    # baseUrl for Apigee dev
+scripts/
+└── check-apigee-org.ps1             # read-only check: envs, instance, env groups, hostnames
 docs/
 ├── ACCEPTANCE.md                    # scope, acceptance criteria, prerequisites
 ├── DEPLOYMENT.md                    # environments, deploy/promote commands, resources
@@ -117,12 +128,12 @@ What changes per environment is only *where* it runs:
 
 | Setting | local | dev (non-prod) | staging (non-prod) |
 |---|---|---|---|
-| Base URL | `http://localhost:8998` | env group hostname for `dev` | env group hostname for `staging` |
-| Postman environment file | `local.postman_environment.json` | `dev.postman_environment.json` (Day 3) | `staging.postman_environment.json` (Day 4) |
+| Base URL | `http://localhost:8998` | `https://35.201.86.122.nip.io` | `https://staging.35.201.86.122.nip.io` |
+| Postman environment file | `local.postman_environment.json` | `dev.postman_environment.json` | `staging.postman_environment.json` (Day 4) |
 | Apigee org | – (emulator) | `apigee-nonprod-511322` | `apigee-nonprod-511322` |
 | Apigee environment | `dev` (emulator workspace env) | `dev` | `staging` |
 | Maven profile | – | `-Pdev` | `-Pstaging` |
-| Deploy identity | none | CI service account (Day 3–4) | CI service account (Day 4) |
+| Deploy identity | none | your Google account (manual), CI service account (Day 4) | CI service account (Day 4) |
 
 ## Emulator limitations (recorded during Day 1)
 
@@ -167,10 +178,27 @@ Package the proxy bundle (no call to Apigee):
 Output: `src/main/apigee/apiproxies/hello-v1/target/hello-v1-1.0.zip`.
 Environments, deploy and promote commands: see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
+## CI pipeline
+
+`.github/workflows/ci.yml` runs on every pull request to `main`, every push to `main`,
+and on demand (Actions tab → CI → Run workflow).
+
+| Step | Gate / output |
+|---|---|
+| `npm ci` | installs the exact tool versions from `package-lock.json` |
+| `npm run lint` | gate 1: any lint error or warning fails the run |
+| JavaScript unit tests | not applicable (no JavaScript) |
+| Maven package | builds `hello-v1-1.0.zip` |
+| Artifacts | `hello-v1-bundle-<commit>` (zip + `build-info.json` with commit, branch, run) and `reports-<commit>` (lint report), kept 30 days |
+
+The workflow has read-only repo access and no cloud credentials: it validates, it does not deploy.
+Deployment is added as a separate stage on Day 4.
+
+Working rule: every change goes through a pull request, and CI must be green before merging.
+
 ## Roadmap
 
 - **Day 1** – proxy, local tests, repository ✅
 - **Day 2** – apigeelint, Postman/Newman tests, quality gates, Maven packaging ✅
-- **Day 3** – deploy to non-prod `dev`, GitHub Actions CI
+- **Day 3** – deploy to non-prod `dev` (revision 1, tag `deploy-dev-r1`), post-deploy tests, GitHub Actions CI ✅
 - **Day 4** – CI deployment stage, post-deploy tests, promotion to `staging`
--

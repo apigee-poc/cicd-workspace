@@ -64,10 +64,26 @@ Every criterion is covered by `tests/hello-v1.postman_collection.json` (7 reques
 - [x] Deployment config documented in `docs/DEPLOYMENT.md`
 - [x] Day 2 baseline tagged (`day2-baseline`)
 
-### Blockers / prerequisites for Day 3
+### Blockers / prerequisites for Day 3 (resolved)
 
-- Provision the Apigee eval org in `apigee-nonprod-511322` with **external access**
-  (GitHub-hosted runners must reach it for post-deploy tests).
-- Create environments `dev` and `staging`, each with its own environment group/hostname.
-- Grant your own account Apigee permissions on the non-prod project for the first manual deploy.
-- CI identity (Workload Identity Federation in `ci-cd-511313`) is needed on Day 3–4.
+- [x] Apigee eval org in `apigee-nonprod-511322` with external access
+- [x] Environments `dev` and `staging`, each with its own environment group and hostname
+- [x] Own account can deploy to the non-prod org
+
+## Day 3 checkpoint ✅
+
+- [x] Non-prod target verified (`scripts/check-apigee-org.ps1`)
+- [x] Deployment identities and roles documented in `docs/DEPLOYMENT.md`
+- [x] Proxy deployed to `dev` with Maven: revision 1, tag `deploy-dev-r1`
+- [x] Post-deploy tests: `npm run test:dev`, 21/21 assertions passed on Apigee `dev`
+- [x] Failure handling: a deliberately wrong expectation failed the run (exit code 1); restored with `git restore`, green again
+- [x] CI workflow `.github/workflows/ci.yml`: lint gate, Maven package, bundle + `build-info.json` artifact
+- [x] Red run: PR with CC004 reintroduced, CI failed at the lint step, not merged
+- [x] Green run: PR #2 merged, CI on `main` green, `build-info.json` commit matches `main`
+- [x] Day 3 baseline tagged (`day3-baseline`)
+
+### Blockers / prerequisites for Day 4
+
+- Workload Identity Federation in `ci-cd-511313` for GitHub Actions (no service account keys).
+- CI service account with `roles/apigee.apiAdminV2` and `roles/apigee.environmentAdmin` on `apigee-nonprod-511322`.
+- `tests/environments/staging.postman_environment.json` with `baseUrl` = `https://staging.35.201.86.122.nip.io`.
