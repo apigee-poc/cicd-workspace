@@ -8,7 +8,7 @@
   <Flows>
     <Flow name="get-hello">
       <Description>GET /v1/hello?name={letters}</Description>
-      <Condition>(request.verb = "GET") and (proxy.pathsuffix = "" or proxy.pathsuffix = "/")</Condition>
+      <Condition>(request.verb = "GET") and (proxy.pathsuffix = null or proxy.pathsuffix = "" or proxy.pathsuffix = "/")</Condition>
     <Request>
         <Step>
           <Name>AM-Extract-Name</Name>
