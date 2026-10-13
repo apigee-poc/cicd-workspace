@@ -20,7 +20,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- Apigee org name = GCP project ID. Check these match your projects. -->
     <nonprod.org>apigee-nonprod-511322</nonprod.org>
-    <prod.org>apigee-prod-511313</prod.org>
+<prod.org>apigee-prod-511508</prod.org>
   </properties>
 
   <build>

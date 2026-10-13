@@ -6,7 +6,7 @@
 |---|---|---|---|
 | `dev` | `apigee-nonprod-511322` | `dev` | Day 3: first deploy + post-deploy tests |
 | `staging` | `apigee-nonprod-511322` | `staging` | Day 4: promotion of the tested revision |
-| `prod` | `apigee-prod-511313` | `prod` | Out of scope for the demo |
+| `prod` | `apigee-prod-511508` | `prod` | Out of scope for the demo |
 
 Profiles live in `deploy/shared-pom.xml`. The proxy bundle is the same for every
 environment; only the profile changes.
