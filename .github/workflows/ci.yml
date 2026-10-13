@@ -1,0 +1,94 @@
+# CI: validate every pull request and every push to main.
+# Gates: apigeelint (0 errors, 0 warnings) -> Maven package.
+# Output: the proxy bundle + build-info.json, stored as a build artifact.
+# No deployment here: validation is kept separate from deployment (Day 4).
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:        # lets you start a run by hand from the Actions tab
+
+permissions:
+  contents: read            # least privilege: this workflow only reads the repo
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true  # a newer push to the same branch cancels the older run
+
+jobs:
+  validate:
+    name: Lint and package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install pinned tools (npm ci)
+        run: npm ci
+
+      # Quality gate 1: any lint error or warning fails the job (--maxWarnings 0)
+      - name: Lint the proxy (apigeelint)
+        run: |
+          mkdir -p reports
+          npm run lint -- -w reports/apigeelint.txt
+
+      # Quality gate 3: not applicable, the proxy has no JavaScript (see README)
+      - name: JavaScript unit tests
+        run: echo "N/A - the proxy has no JavaScript resources"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Package the bundle (Maven)
+        run: mvn -B -f src/main/apigee/apiproxies/hello-v1/pom.xml clean package -Pdev
+
+      # Ties the bundle to the exact commit and run that produced it
+      - name: Write build metadata
+        run: |
+          cat > src/main/apigee/apiproxies/hello-v1/target/build-info.json <<EOF
+          {
+            "proxy": "hello-v1",
+            "commit": "${{ github.sha }}",
+            "ref": "${{ github.ref_name }}",
+            "run_id": "${{ github.run_id }}",
+            "run_number": "${{ github.run_number }}",
+            "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+          cat src/main/apigee/apiproxies/hello-v1/target/build-info.json
+
+      - name: Upload the bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hello-v1-bundle-${{ github.sha }}
+          path: |
+            src/main/apigee/apiproxies/hello-v1/target/*.zip
+            src/main/apigee/apiproxies/hello-v1/target/build-info.json
+          if-no-files-found: error
+          retention-days: 30
+
+      # Runs even when a gate failed, so the reason is always downloadable
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ github.sha }}
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 30
