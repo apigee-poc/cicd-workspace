@@ -20,8 +20,8 @@ $o = Invoke-RestMethod -Uri $api -Headers $h
 "state: $($o.state)   runtimeType: $($o.runtimeType)   billingType: $($o.billingType)"
 
 Section "Environments"
-$envs = @(Invoke-RestMethod -Uri "$api/environments" -Headers $h)
-if ($envs.Count -eq 0) { "(none)" } else { $envs | ForEach-Object { "  $_" } }
+$envs = Invoke-RestMethod -Uri "$api/environments" -Headers $h
+if (-not $envs) { "(none)" } else { foreach ($e in $envs) { "  $e" } }
 
 Section "Instances and attached environments"
 $inst = @((Invoke-RestMethod -Uri "$api/instances" -Headers $h).instances)
