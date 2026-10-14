@@ -202,3 +202,4 @@ Working rule: every change goes through a pull request, and CI must be green bef
 - **Day 2** – apigeelint, Postman/Newman tests, quality gates, Maven packaging ✅
 - **Day 3** – deploy to non-prod `dev` (revision 1, tag `deploy-dev-r1`), post-deploy tests, GitHub Actions CI ✅
 - **Day 4** – CI deployment stage, post-deploy tests, promotion to `staging`
+- change for test pr
