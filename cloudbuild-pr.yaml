@@ -1,0 +1,32 @@
+# PR validation pipeline (Cloud Build, project ci-cd-511313).
+# Trigger: pull requests to main. Service account: cb-validate (no Apigee access).
+# Gates: apigeelint (0 errors, 0 warnings) -> Maven package. Nothing is deployed.
+
+steps:
+  - id: install
+    name: node:22
+    entrypoint: npm
+    args: ['ci']
+
+  # Quality gate 1: any lint error or warning fails the build (--maxWarnings 0)
+  - id: lint
+    name: node:22
+    entrypoint: bash
+    args: ['-c', 'mkdir -p reports && npm run lint -- -w reports/apigeelint.txt']
+
+  # Quality gate 3: not applicable, the proxy has no JavaScript (see README)
+  - id: unit-tests
+    name: node:22
+    entrypoint: bash
+    args: ['-c', 'echo "N/A - the proxy has no JavaScript resources"']
+
+  - id: package
+    name: maven:3.9.9-eclipse-temurin-17
+    entrypoint: mvn
+    args: ['-B', '-f', 'src/main/apigee/apiproxies/hello-v1/pom.xml', 'clean', 'package', '-Pdev']
+
+options:
+  # Required when a build runs as a user-specified service account
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 900s
