@@ -12,6 +12,7 @@
 "test:local": "newman run tests/hello-v1.postman_collection.json -e tests/environments/local.postman_environment.json --reporters cli,junit --reporter-junit-export reports/newman-local.xml",
 "test:dev": "newman run tests/hello-v1.postman_collection.json -e tests/environments/dev.postman_environment.json --reporters cli,junit --reporter-junit-export reports/newman-dev.xml",
 "test:staging": "newman run tests/hello-v1.postman_collection.json -e tests/environments/staging.postman_environment.json --reporters cli,junit --reporter-junit-export reports/newman-staging.xml",
+"test:prod": "newman run tests/hello-v1.postman_collection.json -e tests/environments/prod.postman_environment.json --reporters cli,junit --reporter-junit-export reports/newman-prod.xml",
 "package": "mvn -f src/main/apigee/apiproxies/hello-v1/pom.xml clean package -Pdev"
 },
   "repository": {

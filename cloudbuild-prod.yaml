@@ -1,0 +1,63 @@
+# Production release (Cloud Build, project ci-cd-511313).
+# Trigger: MANUAL, with approval required. Service account: cb-deploy-prod.
+# Flow: find the revision READY in staging -> export that exact bundle from non-prod
+#       -> import it into the prod org -> deploy to prod -> smoke test prod.
+# Nothing is rebuilt: prod receives byte-for-byte the bundle that passed staging.
+
+substitutions:
+  _SOURCE_ORG: apigee-nonprod-511322
+  _SOURCE_ENV: staging
+  _TARGET_ORG: apigee-prod-511508
+  _TARGET_ENV: prod
+  _PROXY: hello-v1
+
+steps:
+  - id: install
+    name: node:22
+    entrypoint: npm
+    args: ['ci']
+
+  # Which revision is live and READY in staging? (writes staging_revision.txt)
+  - id: find-staging-revision
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['scripts/wait-for-deployment.sh', '${_SOURCE_ORG}', '${_SOURCE_ENV}', '${_PROXY}', '60']
+
+  # Export that revision from non-prod and import it into prod (writes imported_revision.txt)
+  - id: copy-to-prod-org
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['-c', 'bash scripts/copy-revision.sh ${_SOURCE_ORG} "$$(cat ${_SOURCE_ENV}_revision.txt)" ${_TARGET_ORG} ${_PROXY}']
+
+  - id: deploy-prod
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['-c', 'bash scripts/deploy-revision.sh ${_TARGET_ORG} ${_TARGET_ENV} ${_PROXY} "$$(cat imported_revision.txt)"']
+
+  - id: wait-prod
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['scripts/wait-for-deployment.sh', '${_TARGET_ORG}', '${_TARGET_ENV}', '${_PROXY}']
+
+  # Smoke test: the same 21 read-only assertions, against prod
+  - id: test-prod
+    name: node:22
+    entrypoint: npm
+    args: ['run', 'test:prod']
+
+  - id: summary
+    name: node:22
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "released from:     ${_SOURCE_ORG} / ${_SOURCE_ENV} revision $$(cat ${_SOURCE_ENV}_revision.txt)"
+        echo "released to:       ${_TARGET_ORG} / ${_TARGET_ENV} revision $$(cat ${_TARGET_ENV}_revision.txt)"
+        echo "bundle stamp:      $$(cat bundle_description.txt)"
+        echo "build:             ${BUILD_ID}"
+
+options:
+  # Required when a build runs as a user-specified service account
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
