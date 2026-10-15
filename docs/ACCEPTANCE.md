@@ -82,8 +82,20 @@ Every criterion is covered by `tests/hello-v1.postman_collection.json` (7 reques
 - [x] Green run: PR #2 merged, CI on `main` green, `build-info.json` commit matches `main`
 - [x] Day 3 baseline tagged (`day3-baseline`)
 
-### Blockers / prerequisites for Day 4
+## Day 4 checkpoint
 
-- Workload Identity Federation in `ci-cd-511313` for GitHub Actions (no service account keys).
-- CI service account with `roles/apigee.apiAdminV2` and `roles/apigee.environmentAdmin` on `apigee-nonprod-511322`.
-- `tests/environments/staging.postman_environment.json` with `baseUrl` = `https://staging.35.201.86.122.nip.io`.
+Plan change: the original plan used GitHub Actions and kept production out of scope.
+Day 4 moved all pipelines to Cloud Build in `ci-cd-511313` and added a prod release with approval.
+Workload Identity Federation was not needed, because Cloud Build runs inside Google Cloud.
+
+- [x] Cloud Build setup: GitHub connection, one service account per trigger, least-privilege roles
+- [x] `pr-validate`: lint + package on every PR, required check in GitHub
+- [ ] GitHub Actions `ci.yml` removed after the Cloud Build check became required
+- [x] `main-deploy-nonprod`: deploy dev → test → deploy the same revision to staging → test
+- [x] Commit stamp in every revision description
+- [ ] `release-prod`: approval → copy staging revision to prod org → deploy → smoke test (result in `docs/RELEASE_NOTES.md`)
+- [x] Configuration and secret review (`docs/CONFIG_REVIEW.md`)
+- [x] k6 baseline on dev: p95 191 ms, 0% errors
+- [x] API contract (`docs/openapi.yaml`), release notes, demo checklist and backlog (`docs/DEMO.md`)
+- [ ] Final clean run traced end to end (commit → revisions → test results)
+- [ ] Day 4 baseline tagged (`day4-baseline`)
