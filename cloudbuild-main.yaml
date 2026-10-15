@@ -1,0 +1,90 @@
+# Release pipeline for non-prod (Cloud Build, project ci-cd-511313).
+# Trigger: push to main (every merged PR). Service account: cb-deploy-nonprod.
+# Flow: stamp commit -> lint -> deploy dev (new revision N) -> test dev
+#       -> deploy the SAME revision N to staging (no rebuild) -> test staging.
+# Any failing step stops the pipeline: staging is only touched if dev passed.
+
+substitutions:
+  _ORG: apigee-nonprod-511322
+  _PROXY: hello-v1
+
+steps:
+  - id: install
+    name: node:22
+    entrypoint: npm
+    args: ['ci']
+
+  # Traceability: write the commit and build ID into the bundle's description.
+  # The description travels with the revision to dev, staging and prod.
+  - id: stamp-commit
+    name: node:22
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        sed -i 's#<Description>.*</Description>#<Description>hello-v1 | commit ${SHORT_SHA} | build ${BUILD_ID}</Description>#' \
+          src/main/apigee/apiproxies/hello-v1/apiproxy/hello-v1.xml
+        grep '<Description>' src/main/apigee/apiproxies/hello-v1/apiproxy/hello-v1.xml
+
+  # Quality gate 1
+  - id: lint
+    name: node:22
+    entrypoint: npm
+    args: ['run', 'lint']
+
+  # Short-lived token of cb-deploy-nonprod, kept only inside this build's workspace
+  - id: token
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['-c', 'gcloud auth print-access-token > /workspace/.token']
+
+  # Import the bundle as a new revision and deploy it to dev
+  - id: deploy-dev
+    name: maven:3.9.9-eclipse-temurin-17
+    entrypoint: bash
+    args: ['-c', 'mvn -B -f src/main/apigee/apiproxies/hello-v1/pom.xml clean install -Pdev "-Dbearer=$$(cat /workspace/.token)"']
+
+  - id: wait-dev
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['scripts/wait-for-deployment.sh', '${_ORG}', 'dev', '${_PROXY}']
+
+  # Quality gate 2 on dev
+  - id: test-dev
+    name: node:22
+    entrypoint: npm
+    args: ['run', 'test:dev']
+
+  # Promotion: deploy the revision that passed in dev to staging (no new import)
+  - id: promote-staging
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['-c', 'bash scripts/deploy-revision.sh ${_ORG} staging ${_PROXY} "$$(cat dev_revision.txt)"']
+
+  - id: wait-staging
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['scripts/wait-for-deployment.sh', '${_ORG}', 'staging', '${_PROXY}']
+
+  # Quality gate 2 on staging
+  - id: test-staging
+    name: node:22
+    entrypoint: npm
+    args: ['run', 'test:staging']
+
+  - id: summary
+    name: node:22
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "commit:           ${COMMIT_SHA}"
+        echo "build:            ${BUILD_ID}"
+        echo "dev revision:     $$(cat dev_revision.txt)"
+        echo "staging revision: $$(cat staging_revision.txt)"
+
+options:
+  # Required when a build runs as a user-specified service account
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1800s
