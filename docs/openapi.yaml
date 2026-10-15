@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: hello-v1
+  version: "1.0"
+  description: >
+    CI/CD proof-of-concept API. Returns a greeting as JSON.
+    The proxy has no backend: responses are built by Apigee policies.
+servers:
+  - url: https://35.201.86.122.nip.io
+    description: dev
+  - url: https://staging.35.201.86.122.nip.io
+    description: staging
+  - url: https://136.68.4.183.nip.io
+    description: prod
+paths:
+  /v1/hello:
+    get:
+      summary: Get a greeting
+      description: A trailing slash (`/v1/hello/`) is also accepted.
+      operationId: getHello
+      parameters:
+        - name: name
+          in: query
+          required: false
+          description: Name to greet. 1-30 letters (A-Z, a-z). Defaults to "World" when omitted.
+          schema:
+            type: string
+            pattern: '^[A-Za-z]{1,30}$'
+          example: Rizk
+      responses:
+        '200':
+          description: Greeting
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Greeting'
+              example:
+                message: Hello, Rizk!
+        '400':
+          description: The name is present but empty or not 1-30 letters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: invalid_request
+                message: "Query parameter 'name' must be 1-30 letters (A-Z, a-z)."
+        '404':
+          description: Any other method or path under /v1/hello
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: not_found
+                message: Only GET /v1/hello is supported.
+components:
+  schemas:
+    Greeting:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: [invalid_request, not_found]
+        message:
+          type: string

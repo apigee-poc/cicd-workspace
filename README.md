@@ -76,8 +76,9 @@ Full acceptance criteria: [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
 ## Project structure
 
 ```
-.github/workflows/
-└── ci.yml                           # CI: lint gate, Maven package, bundle artifact
+cloudbuild-pr.yaml                   # Cloud Build: PR validation (lint + package)
+cloudbuild-main.yaml                 # Cloud Build: on merge, deploy dev -> test -> staging -> test
+cloudbuild-prod.yaml                 # Cloud Build: manual prod release with approval
 deploy/
 └── shared-pom.xml                   # Maven parent: plugins + dev/staging/prod profiles
 src/main/apigee/
@@ -97,13 +98,24 @@ src/main/apigee/
 tests/
 ├── hello-v1.postman_collection.json # 7 requests, 21 assertions (single source of tests)
 └── environments/
-    ├── local.postman_environment.json  # baseUrl for the local emulator
-    └── dev.postman_environment.json    # baseUrl for Apigee dev
+    ├── local.postman_environment.json    # baseUrl for the local emulator
+    ├── dev.postman_environment.json      # baseUrl for Apigee dev
+    ├── staging.postman_environment.json  # baseUrl for Apigee staging
+    └── prod.postman_environment.json     # baseUrl for Apigee prod (smoke tests)
+tests/perf/
+└── baseline.js                      # k6 baseline, non-prod only
 scripts/
-└── check-apigee-org.ps1             # read-only check: envs, instance, env groups, hostnames
+├── check-apigee-org.ps1             # read-only check: envs, instance, env groups, hostnames
+├── wait-for-deployment.sh           # waits until a revision is READY in an environment
+├── deploy-revision.sh               # deploys an existing revision (promotion)
+└── copy-revision.sh                 # exports a revision from one org, imports it into another
 docs/
 ├── ACCEPTANCE.md                    # scope, acceptance criteria, prerequisites
-├── DEPLOYMENT.md                    # environments, deploy/promote commands, resources
+├── DEPLOYMENT.md                    # environments, pipelines, identities, commands
+├── CONFIG_REVIEW.md                 # configuration and secret review, perf baseline
+├── RELEASE_NOTES.md                 # release notes for hello-v1
+├── DEMO.md                          # demo checklist, retrospective, next-steps backlog
+├── openapi.yaml                     # API contract for hello-v1
 ├── apigeelint-baseline.txt          # lint before the CC004 fix
 └── apigeelint-after-fix.txt         # lint after the fix (0 errors, 0 warnings)
 package.json / package-lock.json     # pinned apigeelint + newman, npm scripts
@@ -126,14 +138,14 @@ Generated, never committed: `node_modules/`, `reports/`, `**/target/`.
 The proxy bundle itself has no environment-specific values (no target servers, KVMs or secrets).
 What changes per environment is only *where* it runs:
 
-| Setting | local | dev (non-prod) | staging (non-prod) |
-|---|---|---|---|
-| Base URL | `http://localhost:8998` | `https://35.201.86.122.nip.io` | `https://staging.35.201.86.122.nip.io` |
-| Postman environment file | `local.postman_environment.json` | `dev.postman_environment.json` | `staging.postman_environment.json` (Day 4) |
-| Apigee org | – (emulator) | `apigee-nonprod-511322` | `apigee-nonprod-511322` |
-| Apigee environment | `dev` (emulator workspace env) | `dev` | `staging` |
-| Maven profile | – | `-Pdev` | `-Pstaging` |
-| Deploy identity | none | your Google account (manual), CI service account (Day 4) | CI service account (Day 4) |
+| Setting | local | dev | staging | prod |
+|---|---|---|---|---|
+| Base URL | `http://localhost:8998` | `https://35.201.86.122.nip.io` | `https://staging.35.201.86.122.nip.io` | `https://136.68.4.183.nip.io` |
+| Postman environment file | `local` | `dev` | `staging` | `prod` |
+| Apigee org | – (emulator) | `apigee-nonprod-511322` | `apigee-nonprod-511322` | `apigee-prod-511508` |
+| Apigee environment | `dev` (emulator workspace env) | `dev` | `staging` | `prod` |
+| How it gets deployed | Cloud Code | `main-deploy-nonprod` (new revision) | `main-deploy-nonprod` (same revision as dev) | `release-prod` (staging revision copied, after approval) |
+| Deploy identity | none | `cb-deploy-nonprod` | `cb-deploy-nonprod` | `cb-deploy-prod` |
 
 ## Emulator limitations (recorded during Day 1)
 
@@ -178,28 +190,41 @@ Package the proxy bundle (no call to Apigee):
 Output: `src/main/apigee/apiproxies/hello-v1/target/hello-v1-1.0.zip`.
 Environments, deploy and promote commands: see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-## CI pipeline
+## CI/CD pipeline (Cloud Build)
 
-`.github/workflows/ci.yml` runs on every pull request to `main`, every push to `main`,
-and on demand (Actions tab → CI → Run workflow).
+All pipelines run in Cloud Build in project `ci-cd-511313` (region `europe-west1`),
+connected to this GitHub repo through the Cloud Build GitHub App.
 
-| Step | Gate / output |
-|---|---|
-| `npm ci` | installs the exact tool versions from `package-lock.json` |
-| `npm run lint` | gate 1: any lint error or warning fails the run |
-| JavaScript unit tests | not applicable (no JavaScript) |
-| Maven package | builds `hello-v1-1.0.zip` |
-| Artifacts | `hello-v1-bundle-<commit>` (zip + `build-info.json` with commit, branch, run) and `reports-<commit>` (lint report), kept 30 days |
+```
+feature branch -> pull request -> [pr-validate]          lint -> package           (required check)
+                       merge to main -> [main-deploy-nonprod] stamp commit -> lint -> deploy dev (revision N)
+                                                          -> test dev -> deploy N to staging -> test staging
+                       manual + approval -> [release-prod]  copy staging revision to prod org -> deploy prod -> smoke test
+```
 
-The workflow has read-only repo access and no cloud credentials: it validates, it does not deploy.
-Deployment is added as a separate stage on Day 4.
+| Trigger | Starts on | Config | Runs as | Can touch |
+|---|---|---|---|---|
+| `pr-validate` | pull request to `main` | `cloudbuild-pr.yaml` | `cb-validate` | nothing in Apigee |
+| `main-deploy-nonprod` | push to `main` | `cloudbuild-main.yaml` | `cb-deploy-nonprod` | `dev`, `staging` |
+| `release-prod` | manual run, then approval | `cloudbuild-prod.yaml` | `cb-deploy-prod` | `prod` (read-only on non-prod) |
 
-Working rule: every change goes through a pull request, and CI must be green before merging.
+Rules:
+- Every change goes through a pull request; `pr-validate (ci-cd-511313)` is the required check.
+- The bundle is built once per merge. Staging gets the same revision as dev; prod gets the exact
+  bundle exported from staging. Nothing is rebuilt for a later environment.
+- Each bundle carries `hello-v1 | commit <id> | build <id>` in its description, in every org.
+- Any failing step stops the pipeline: staging is only touched after dev passes, and prod is
+  only released by hand, after approval, from what passed staging.
+
+Details, identities and manual commands: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Roadmap
 
 - **Day 1** – proxy, local tests, repository ✅
 - **Day 2** – apigeelint, Postman/Newman tests, quality gates, Maven packaging ✅
 - **Day 3** – deploy to non-prod `dev` (revision 1, tag `deploy-dev-r1`), post-deploy tests, GitHub Actions CI ✅
-- **Day 4** – CI deployment stage, post-deploy tests, promotion to `staging`
-- change for test pr- **Day 4 (in progress)** - Cloud Build PR trigger `pr-validate` runs lint + package on every pull request to `main`.
+- **Day 4** – CI/CD moved to Cloud Build: PR validation, automatic dev → staging release, approved prod release, config and secret review, k6 baseline ✅
+
+Plan change (Day 4): the original plan deployed with GitHub Actions and kept production out of scope.
+We moved all pipelines to Cloud Build in `ci-cd-511313` and added a prod release with manual approval.
+See [docs/DEMO.md](docs/DEMO.md) for the retrospective and next steps.

@@ -1,6 +1,6 @@
 # Configuration and secret review
 
-Reviewed on: _date_ · Reviewed by: _name_
+Reviewed on: 2026-10-15 · Reviewed by: _name_
 
 ## 1. What the proxy needs per environment
 
@@ -27,11 +27,12 @@ No service account keys were created. No credential is in Git, in the build conf
 
 ## 3. Checks performed
 
-- [ ] Secret scan of the full Git history (gitleaks): _result_
-- [ ] Manual search of history for `apikey`, `token`, `password`, `Authorization`: _result_
-- [ ] No OAuth token (`ya29.`) printed in Cloud Build logs (dev/staging and prod builds): _result_
-- [ ] Postman collection and environment files contain no auth settings: _result_
-- [ ] `.gitignore` excludes `.env`, keys, `node_modules/`, `reports/`, `target/`: _result_
+- [x] Secret scan of the full Git history (gitleaks, 30 commits): no leaks found
+- [x] Manual search of history: `apikey`, `password`, `Bearer ya29` – no matches.
+      `Authorization` – 5 commits, all scripts that build the header from a runtime `$TOKEN`; no values
+- [ ] No OAuth token (`ya29.`) printed in Cloud Build logs: main-deploy-nonprod _N_, release-prod _N_
+- [x] Postman collection and environment files contain no auth settings
+- [x] `.gitignore` excludes `.env`, keys, `node_modules/`, `reports/`, `target/`
 
 ## 4. Manual vs automated
 
@@ -50,42 +51,19 @@ No service account keys were created. No credential is in Git, in the build conf
 
 Next step for a real project: define the ❌ rows with infrastructure as code
 (for example Terraform), so environments can be recreated and reviewed like the proxy.
-THRESHOLDS 
 
-    http_req_duration
-    ✓ 'p(95)<1000' p(95)=191.19ms
+## 5. Performance baseline (non-prod)
 
-    http_req_failed
-    ✓ 'rate<0.01' rate=0.00%
+Run on 2026-10-15 with k6 (`tests/perf/baseline.js`) against `dev` (`https://35.201.86.122.nip.io`):
+5 virtual users, 30 s, 0.5 s pause between requests.
 
+| Metric | Result | Threshold |
+|---|---|---|
+| Requests | 220 (7.2/s) | – |
+| Error rate | 0.00% | < 1% ✓ |
+| p95 latency | 191 ms | < 1000 ms ✓ |
+| Avg / min / max | 177 / 167 / 202 ms | – |
+| Checks (status + body) | 440 / 440 | – |
 
-  █ TOTAL RESULTS 
-
-    checks_total.......: 440     14.434059/s
-    checks_succeeded...: 100.00% 440 out of 440
-    checks_failed......: 0.00%   0 out of 440
-
-    ✓ status is 200
-    ✓ greeting is correct
-
-    HTTP
-    http_req_duration..............: avg=177.34ms min=167.05ms med=176.12ms max=202.32ms p(90)=185.09ms p(95)=191.19ms
-      { expected_response:true }...: avg=177.34ms min=167.05ms med=176.12ms max=202.32ms p(90)=185.09ms p(95)=191.19ms
-    http_req_failed................: 0.00% 0 out of 220
-    http_reqs......................: 220   7.217029/s
-
-    EXECUTION
-    iteration_duration.............: avg=688.69ms min=667.33ms med=677.43ms max=1.36s    p(90)=686.63ms p(95)=694.85ms
-    iterations.....................: 220   7.217029/s
-    vus............................: 5     min=5        max=5
-    vus_max........................: 5     min=5        max=5
-
-    NETWORK
-    data_received..................: 86 kB 2.8 kB/s
-    data_sent......................: 25 kB 832 B/s
-
-
-
-
-running (0m30.5s), 0/5 VUs, 220 complete and 0 interrupted iterations
-default ✓ [ 100% ] 5 VUs  30s
+This is a small baseline on an evaluation org, measured from one laptop.
+It does not describe production capacity. Never run this test against prod.
