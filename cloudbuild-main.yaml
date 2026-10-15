@@ -61,6 +61,7 @@ steps:
     entrypoint: bash
     args: ['-c', 'bash scripts/deploy-revision.sh ${_ORG} staging ${_PROXY} "$$(cat dev_revision.txt)"']
 
+
   - id: wait-staging
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
