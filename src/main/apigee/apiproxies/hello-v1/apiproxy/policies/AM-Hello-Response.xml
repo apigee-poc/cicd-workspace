@@ -3,8 +3,7 @@
   <DisplayName>AM-Hello-Response</DisplayName>
   <!-- variablePrefix/Suffix avoid conflicts between JSON braces and {variable} templates -->
   <Set>
-    <Payload contentType="application/json" variablePrefix="@" variableSuffix="#">{"message":"Hello, @hello.name#!"}</Payload>
-    <StatusCode>200</StatusCode>
+<Payload contentType="application/json" variablePrefix="@" variableSuffix="#">{"message":"Hello, @hello.name#!","environment":"@environment.name#"}</Payload>    <StatusCode>200</StatusCode>
   </Set>
   <IgnoreUnresolvedVariables>false</IgnoreUnresolvedVariables>
 </AssignMessage>

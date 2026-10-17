@@ -34,6 +34,9 @@
               "",
               "pm.test(\"Body has the expected greeting\", function () {",
               "    pm.expect(pm.response.json().message).to.eql(\"Hello, Rizk!\");",
+              "});",
+              "pm.test(\"Body has the environment name\", function () {",
+              "    pm.expect(pm.response.json().environment).to.eql(pm.environment.get(\"expectedEnv\"));",
               "});"
             ]
           }
