@@ -8,6 +8,7 @@
     <Ref>request.queryparam.name</Ref>
     <Value>World</Value>
   </AssignVariable>
+  
   <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
   
 </AssignMessage>
