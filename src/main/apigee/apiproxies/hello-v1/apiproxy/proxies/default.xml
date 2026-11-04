@@ -15,9 +15,8 @@
         </Step>
         <Step>
           <Name>RF-Invalid-Name</Name>
-<!--           <Condition>!(hello.name JavaRegex "^[A-Za-z]{1,30}$") or !(hello.name JavaRegex "^[A-Za-z]{1,30}$") or !(hello.name JavaRegex "^[A-Za-z]{1,30}$")</Condition>-->       
-       <Condition>!(hello.name JavaRegex "^[A-Za-z]{1,30}$")</Condition>
-</Step>
+          <Condition>!(hello.name JavaRegex "^[A-Za-z]{1,30}$") or !(hello.name JavaRegex "^[A-Za-z]{1,30}$") or !(hello.name JavaRegex "^[A-Za-z]{1,30}$")</Condition>
+        </Step>
       </Request>
       <Response>
         <Step>
