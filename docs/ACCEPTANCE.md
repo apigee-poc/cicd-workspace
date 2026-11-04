@@ -77,7 +77,7 @@ Every criterion is covered by `tests/hello-v1.postman_collection.json` (7 reques
 - [x] Proxy deployed to `dev` with Maven: revision 1, tag `deploy-dev-r1`
 - [x] Post-deploy tests: `npm run test:dev`, 21/21 assertions passed on Apigee `dev`
 - [x] Failure handling: a deliberately wrong expectation failed the run (exit code 1); restored with `git restore`, green again
-- [x] CI workflow `.github/workflows/ci.yml`: lint gate, Maven package, bundle + `build-info.json` artifact
+- [x] CI workflow: lint gate, Maven package (originally `.github/workflows/ci.yml`, now replaced by Cloud Build `cloudbuild-pr.yaml`)
 - [x] Red run: PR with CC004 reintroduced, CI failed at the lint step, not merged
 - [x] Green run: PR #2 merged, CI on `main` green, `build-info.json` commit matches `main`
 - [x] Day 3 baseline tagged (`day3-baseline`)

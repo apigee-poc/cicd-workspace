@@ -76,8 +76,9 @@ Full acceptance criteria: [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md).
 ## Project structure
 
 ```
-.github/workflows/
-└── ci.yml                           # CI: lint gate, Maven package, bundle artifact
+cloudbuild-pr.yaml                   # PR validation: lint gate + Maven package
+cloudbuild-main.yaml                 # Non-prod CD: deploy dev -> test (rollback on failure) -> promote staging -> test (rollback on failure)
+cloudbuild-prod.yaml                 # Prod CD: import to prod -> deploy -> smoke test (rollback on failure)
 deploy/
 └── shared-pom.xml                   # Maven parent: plugins + dev/staging/prod profiles
 src/main/apigee/
@@ -100,7 +101,12 @@ tests/
     ├── local.postman_environment.json  # baseUrl for the local emulator
     └── dev.postman_environment.json    # baseUrl for Apigee dev
 scripts/
-└── check-apigee-org.ps1             # read-only check: envs, instance, env groups, hostnames
+├── check-apigee-org.ps1             # read-only check: envs, instance, env groups, hostnames
+├── get-deployed-revision.sh         # retrieves currently active revision in an environment
+├── deploy-revision.sh               # deploys an existing revision to an environment
+├── wait-for-deployment.sh           # waits for revision state to become READY
+├── rollback.sh                      # rolls back to previous revision (or undeploys) on test failure
+└── copy-revision.sh                 # copies revision bundle from nonprod org to prod org
 docs/
 ├── ACCEPTANCE.md                    # scope, acceptance criteria, prerequisites
 ├── DEPLOYMENT.md                    # environments, deploy/promote commands, resources
@@ -178,23 +184,32 @@ Package the proxy bundle (no call to Apigee):
 Output: `src/main/apigee/apiproxies/hello-v1/target/hello-v1-1.0.zip`.
 Environments, deploy and promote commands: see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-## CI pipeline
+## CI/CD pipelines (Cloud Build)
 
-`.github/workflows/ci.yml` runs on every pull request to `main`, every push to `main`,
-and on demand (Actions tab → CI → Run workflow).
+Continuous integration and continuous deployment are managed via Google Cloud Build:
 
-| Step | Gate / output |
-|---|---|
-| `npm ci` | installs the exact tool versions from `package-lock.json` |
-| `npm run lint` | gate 1: any lint error or warning fails the run |
-| JavaScript unit tests | not applicable (no JavaScript) |
-| Maven package | builds `hello-v1-1.0.zip` |
-| Artifacts | `hello-v1-bundle-<commit>` (zip + `build-info.json` with commit, branch, run) and `reports-<commit>` (lint report), kept 30 days |
+1. **Pull Request Validation (`cloudbuild-pr.yaml`)**:
+   Runs on every pull request to `main`.
+   - `npm ci`
+   - Gate 1: `npm run lint` (apigeelint with 0 errors and 0 warnings)
+   - Gate 3: Unit test check
+   - Maven package: packages `hello-v1-1.0.zip`
 
-The workflow has read-only repo access and no cloud credentials: it validates, it does not deploy.
-Deployment is added as a separate stage on Day 4.
+2. **Non-Prod Deployment & Promotion (`cloudbuild-main.yaml`)**:
+   Runs on push / merge to `main`.
+   - Records currently active revision in `dev`.
+   - Deploys new revision to `dev` and waits until `READY`.
+   - Runs post-deploy tests (`npm run test:dev`). If tests fail, automatically rolls back `dev` to the previous revision (or undeploys if no prior revision existed) and halts the pipeline.
+   - If `dev` passes, records currently active revision in `staging`.
+   - Promotes the tested revision to `staging` and waits until `READY`.
+   - Runs post-deploy tests (`npm run test:staging`). If tests fail, automatically rolls back `staging` to the previous revision and halts the pipeline.
 
-Working rule: every change goes through a pull request, and CI must be green before merging.
+3. **Production Deployment (`cloudbuild-prod.yaml`)**:
+   Manual trigger with approval.
+   - Identifies and exports the tested revision from staging.
+   - Records currently active revision in `prod`.
+   - Imports and deploys the revision to `prod`.
+   - Runs smoke tests (`npm run test:prod`). If smoke tests fail, automatically rolls back `prod` to the previous revision.
 
 ## Roadmap
 
