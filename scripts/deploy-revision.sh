@@ -10,7 +10,7 @@ if [[ -z "${REV}" ]]; then
   exit 1
 fi
 
-TOKEN="$(gcloud auth print-access-token)"
+TOKEN="$(gcloud auth print-access-token 2>/dev/null || ([ -f /workspace/.token ] && cat /workspace/.token) || true)"
 echo "Deploying ${PROXY} revision ${REV} to ${ENV} in ${ORG}"
 curl -sS --fail-with-body -X POST -H "Authorization: Bearer ${TOKEN}" \
   "https://apigee.googleapis.com/v1/organizations/${ORG}/environments/${ENV}/apis/${PROXY}/revisions/${REV}/deployments?override=true" \

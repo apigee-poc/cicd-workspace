@@ -1,7 +1,7 @@
 # Production release (Cloud Build, project ci-cd-511313).
 # Trigger: MANUAL, with approval required. Service account: cb-deploy-prod.
 # Flow: find the revision READY in staging -> export that exact bundle from non-prod
-#       -> import it into the prod org -> deploy to prod -> smoke test prod.
+#       -> import it into the prod org -> deploy to prod -> smoke test prod (rollback on failure).
 # Nothing is rebuilt: prod receives byte-for-byte the bundle that passed staging.
 
 substitutions:
@@ -23,6 +23,12 @@ steps:
     entrypoint: bash
     args: ['scripts/wait-for-deployment.sh', '${_SOURCE_ORG}', '${_SOURCE_ENV}', '${_PROXY}', '60']
 
+  # Record currently deployed prod revision before deploying new revision (for rollback)
+  - id: record-prev-prod
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['scripts/get-deployed-revision.sh', '${_TARGET_ORG}', '${_TARGET_ENV}', '${_PROXY}', 'prev_prod_revision.txt']
+
   # Export that revision from non-prod and import it into prod (writes imported_revision.txt)
   - id: copy-to-prod-org
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -42,8 +48,26 @@ steps:
   # Smoke test: the same 21 read-only assertions, against prod
   - id: test-prod
     name: node:22
-    entrypoint: npm
-    args: ['run', 'test:prod']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        npm run test:prod || { echo "Prod smoke tests failed!" >&2; touch /workspace/prod_test_failed; }
+
+  # Rollback prod if test-prod failed
+  - id: check-prod-test
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        if [ -f /workspace/prod_test_failed ]; then
+          echo "Smoke tests failed on prod! Initiating rollback..."
+          bash scripts/rollback.sh "${_TARGET_ORG}" "${_TARGET_ENV}" "${_PROXY}" "$$(cat prev_prod_revision.txt)" "$$(cat imported_revision.txt)"
+          echo "Pipeline halted: prod smoke tests failed and environment was rolled back." >&2
+          exit 1
+        fi
+        echo "Prod smoke tests passed."
 
   - id: summary
     name: node:22
