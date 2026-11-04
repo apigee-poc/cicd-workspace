@@ -46,6 +46,7 @@
         "method": "GET",
         "header": [],
         "url": {
+          
           "raw": "{{baseUrl}}/v1/hello?name=Rizk",
           "host": [
             "{{baseUrl}}"
