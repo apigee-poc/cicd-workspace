@@ -2,8 +2,11 @@
 # Waits until the newest deployed revision of a proxy is READY in an environment.
 # Usage: wait-for-deployment.sh <org> <env> <proxy> [timeout_seconds]
 # On success writes the revision number to <env>_revision.txt and exits 0.
-# Exits 1 on ERROR state or timeout. Needs: gcloud, curl, python3.
+# Exits 1 on ERROR state or timeout. Needs: gcloud, curl (Python comes from gcloud if python3 is missing).
 set -euo pipefail
+
+# JSON parsing: system python3 if the image has it, otherwise the Python bundled with gcloud
+PY="$(command -v python3 || gcloud info --format='value(basic.python_location)')"
 
 ORG="$1"; ENV="$2"; PROXY="$3"; TIMEOUT="${4:-300}"
 BASE="https://apigee.googleapis.com/v1/organizations/${ORG}/environments/${ENV}/apis/${PROXY}"
@@ -12,11 +15,11 @@ while true; do
   TOKEN="$(gcloud auth print-access-token)"
 
   REV="$(curl -sS --fail-with-body -H "Authorization: Bearer ${TOKEN}" "${BASE}/deployments" \
-    | python3 -c 'import json,sys; d=json.load(sys.stdin).get("deployments",[]); print(max((int(x["revision"]) for x in d), default=""))')"
+    | "${PY}" -c 'import json,sys; d=json.load(sys.stdin).get("deployments",[]); print(max((int(x["revision"]) for x in d), default=""))')"
 
   if [[ -n "${REV}" ]]; then
     STATE="$(curl -sS --fail-with-body -H "Authorization: Bearer ${TOKEN}" "${BASE}/revisions/${REV}/deployments" \
-      | python3 -c 'import json,sys; print(json.load(sys.stdin).get("state","UNKNOWN"))')"
+      | "${PY}" -c 'import json,sys; print(json.load(sys.stdin).get("state","UNKNOWN"))')"
   else
     STATE="NOT_DEPLOYED"
   fi
