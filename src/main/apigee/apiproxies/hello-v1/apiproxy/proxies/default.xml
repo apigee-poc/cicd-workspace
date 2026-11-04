@@ -8,14 +8,15 @@
   <Flows>
     <Flow name="get-hello">
       <Description>GET /v1/hello?name={letters}</Description>
-      <Condition>(request.verb = "GET") and (proxy.pathsuffix = "" or proxy.pathsuffix = "/") </Condition>
+      <Condition>(request.verb = "GET") and (proxy.pathsuffix = "" or proxy.pathsuffix = "/")</Condition>
     <Request>
         <Step>
           <Name>AM-Extract-Name</Name>
         </Step>
         <Step>
           <Name>RF-Invalid-Name</Name>
-          <Condition>!(hello.name JavaRegex "^[A-Za-z]{1,30}$") or !(hello.name JavaRegex "^[A-Za-z]{1,30}$") or !(hello.name JavaRegex "^[A-Za-z]{1,30}$")</Condition>
+<!--           <Condition>!(hello.name JavaRegex "^[A-Za-z]{1,30}$") or !(hello.name JavaRegex "^[A-Za-z]{1,30}$") or !(hello.name JavaRegex "^[A-Za-z]{1,30}$")</Condition>
+ -->          <Condition>!(hello.name JavaRegex "^[A-Za-z]{1,30}$")</Condition>
         </Step>
       </Request>
       <Response>
