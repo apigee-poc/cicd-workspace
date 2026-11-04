@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <AssignMessage continueOnError="false" enabled="true" name="AM-Hello-Response">
   <DisplayName>AM-Hello-Response</DisplayName>
-  <!-- variablePrefix/Suffix avoid conflicts between JSON braces and {variable} templates -->
+  <!-- variablePrefix/Suffix  avoid conflicts between JSON braces and {variable} templates -->
   <Set>
 <Payload contentType="application/json" variablePrefix="@" variableSuffix="#">{"message":"Hello, @hello.name#!","environment":"@environment.name#"}</Payload>    <StatusCode>200</StatusCode>
   </Set>
