@@ -1,8 +1,12 @@
 # Release pipeline for non-prod (Cloud Build, project ci-cd-511313).
 # Trigger: push to main (every merged PR). Service account: cb-deploy-nonprod.
-# Flow: stamp commit -> lint -> deploy dev (new revision N) -> test dev (rollback on failure)
-#       -> deploy the SAME revision N to staging (no rebuild) -> test staging (rollback on failure).
+# Flow: stamp commit → lint → create versioned KVM → deploy dev (new revision N)
+#       → test dev (rollback on failure)
+#       → create versioned KVM in staging → promote the SAME revision N to staging
+#       → test staging (rollback on failure).
 # Any failing step stops the pipeline: staging is only touched if dev passed.
+# KVM versioning: each commit gets its own KVM (hello-v1-config-<SHA>).
+# Rollback is automatic — the previous proxy revision references its own KVM.
 
 substitutions:
   _ORG: apigee-nonprod-511322
@@ -14,17 +18,28 @@ steps:
     entrypoint: npm
     args: ['ci']
 
-  # Traceability: write the commit and build ID into the bundle's description.
-  # The description travels with the revision to dev, staging and prod.
+  # Traceability: write the commit and build ID into the bundle's description,
+  # and stamp the KVM version (short SHA) into KVM policy mapIdentifier attributes.
   - id: stamp-commit
     name: node:22
     entrypoint: bash
     args:
       - -c
       - |
+        PROXY_DIR=src/main/apigee/apiproxies/hello-v1/apiproxy
+
+        # Stamp the proxy description (existing)
         sed -i 's#<Description>.*</Description>#<Description>hello-v1 | commit ${SHORT_SHA} | build ${BUILD_ID}</Description>#' \
-          src/main/apigee/apiproxies/hello-v1/apiproxy/hello-v1.xml
-        grep '<Description>' src/main/apigee/apiproxies/hello-v1/apiproxy/hello-v1.xml
+          "$PROXY_DIR/hello-v1.xml"
+
+        # Stamp KVM version into all policies that use the placeholder
+        find "$PROXY_DIR/policies" -name '*.xml' -exec \
+          sed -i "s/__KVM_VERSION__/${SHORT_SHA}/g" {} +
+
+        # Log what was stamped
+        echo "Stamped commit ${SHORT_SHA} and KVM version"
+        grep '<Description>' "$PROXY_DIR/hello-v1.xml"
+        grep -r 'mapIdentifier' "$PROXY_DIR/policies/" || true
 
   # Quality gate 1
   - id: lint
@@ -43,6 +58,12 @@ steps:
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
     args: ['scripts/get-deployed-revision.sh', '${_ORG}', 'dev', '${_PROXY}', 'prev_dev_revision.txt']
+
+  # Create versioned KVM in dev BEFORE deploying (so the proxy can read it on startup)
+  - id: create-kvm-dev
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['scripts/create-versioned-kvm.sh', '${_ORG}', 'dev', '${SHORT_SHA}']
 
   # Import the bundle as a new revision and deploy it to dev
   - id: deploy-dev
@@ -64,7 +85,9 @@ steps:
       - |
         npm run test:dev || { echo "Dev tests failed!" >&2; touch /workspace/dev_test_failed; }
 
-  # Rollback dev if test-dev failed
+  # Rollback dev if test-dev failed.
+  # No KVM rollback needed: the previous proxy revision references its own
+  # versioned KVM (hello-v1-config-<prev-SHA>) which still exists.
   - id: check-dev-test
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
@@ -84,6 +107,12 @@ steps:
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
     args: ['scripts/get-deployed-revision.sh', '${_ORG}', 'staging', '${_PROXY}', 'prev_staging_revision.txt']
+
+  # Create versioned KVM in staging (same SHA, staging-specific values from staging/kvms/)
+  - id: create-kvm-staging
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['scripts/create-versioned-kvm.sh', '${_ORG}', 'staging', '${SHORT_SHA}']
 
   # Promotion: deploy the revision that passed in dev to staging (no new import)
   - id: promote-staging
@@ -105,7 +134,7 @@ steps:
       - |
         npm run test:staging || { echo "Staging tests failed!" >&2; touch /workspace/staging_test_failed; }
 
-  # Rollback staging if test-staging failed
+  # Rollback staging if test-staging failed (same logic — old revision has its own KVM)
   - id: check-staging-test
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
@@ -128,6 +157,7 @@ steps:
       - |
         echo "commit:           ${COMMIT_SHA}"
         echo "build:            ${BUILD_ID}"
+        echo "kvm version:      ${SHORT_SHA}"
         echo "dev revision:     $$(cat dev_revision.txt)"
         echo "staging revision: $$(cat staging_revision.txt)"
 

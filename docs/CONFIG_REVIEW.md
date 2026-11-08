@@ -7,8 +7,8 @@ Reviewed on: _date_ · Reviewed by: _name_
 | Item | Used? | Where the value lives | Notes |
 |---|---|---|---|
 | Target servers | No | – | No-target proxy |
-| KVMs | No | – | No runtime configuration |
-| Secrets (API keys, passwords, certificates) | No | – | Nothing to store in Secret Manager |
+| KVMs | Yes | `src/main/apigee/environments/<env>/kvms/*.json` | Versioned per commit (`hello-v1-config-<SHA>`); automated CI deployment |
+| Secrets (API keys, passwords, certificates) | No | – | Non-sensitive sample configs used; no Secret Manager keys required |
 | Environment-specific bundle config (`config.json`) | No | – | The same bundle runs in every environment |
 | Base URL per environment | Yes | `tests/environments/*.postman_environment.json` | Not secret |
 | Apigee org / environment per stage | Yes | `deploy/shared-pom.xml` profiles, `cloudbuild-*.yaml` substitutions | Not secret |
@@ -38,6 +38,7 @@ No service account keys were created. No credential is in Git, in the build conf
 | Resource | Created by | As code? |
 |---|---|---|
 | Proxy bundle, policies | Developers, Git | ✅ |
+| Environment KVM definitions | Git (`src/main/apigee/environments/<env>/kvms/`) & CI | ✅ |
 | Tests (Postman collection, environment files) | Git | ✅ |
 | Lint and quality gates | `package.json`, `cloudbuild-pr.yaml` | ✅ |
 | Build, deploy, promote, prod release steps | `cloudbuild-*.yaml`, `scripts/*.sh` | ✅ |
