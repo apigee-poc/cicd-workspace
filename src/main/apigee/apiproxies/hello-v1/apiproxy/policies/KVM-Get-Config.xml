@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Loads configuration entries from a versioned KVM.
+  The mapIdentifier placeholder __KVM_VERSION__ is replaced at build time
+  by the stamp-commit step with the short commit SHA, producing a name
+  like "hello-v1-config-a1b2c3d".  Each proxy revision therefore points
+  to its own KVM; rolling back the proxy automatically reconnects to the
+  previous KVM — no restore logic needed.
+
+  continueOnError is true so the proxy still works in the local emulator
+  (where the versioned KVM does not exist).
+-->
+<KeyValueMapOperations name="KVM-Get-Config"
+                       mapIdentifier="hello-v1-config-__KVM_VERSION__"
+                       async="false" continueOnError="true" enabled="true">
+  <DisplayName>KVM-Get-Config</DisplayName>
+  <Scope>environment</Scope>
+  <ExpiryTimeInSecs>300</ExpiryTimeInSecs>
+  <Get assignTo="private.config.greeting-prefix">
+    <Key>
+      <Parameter>greeting-prefix</Parameter>
+    </Key>
+  </Get>
+  <Get assignTo="private.config.max-name-length">
+    <Key>
+      <Parameter>max-name-length</Parameter>
+    </Key>
+  </Get>
+  <Get assignTo="private.config.environment-label">
+    <Key>
+      <Parameter>environment-label</Parameter>
+    </Key>
+  </Get>
+</KeyValueMapOperations>

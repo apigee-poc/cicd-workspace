@@ -1,8 +1,11 @@
 # Production release (Cloud Build, project ci-cd-511313).
 # Trigger: MANUAL, with approval required. Service account: cb-deploy-prod.
-# Flow: find the revision READY in staging -> export that exact bundle from non-prod
-#       -> import it into the prod org -> deploy to prod -> smoke test prod (rollback on failure).
+# Flow: find the revision READY in staging → export that exact bundle from non-prod
+#       → import it into the prod org → create versioned KVM in prod
+#       → deploy to prod → smoke test prod (rollback on failure).
 # Nothing is rebuilt: prod receives byte-for-byte the bundle that passed staging.
+# KVM versioning: the bundle carries the commit SHA in its policies; the same
+# versioned KVM name is created in prod with prod-specific values.
 
 substitutions:
   _SOURCE_ORG: apigee-nonprod-511322
@@ -35,6 +38,28 @@ steps:
     entrypoint: bash
     args: ['-c', 'bash scripts/copy-revision.sh ${_SOURCE_ORG} "$$(cat ${_SOURCE_ENV}_revision.txt)" ${_TARGET_ORG} ${_PROXY}']
 
+  # Extract the commit SHA from the bundle description to use as KVM version.
+  # bundle_description.txt contains: "hello-v1 | commit a1b2c3d | build ..."
+  - id: extract-kvm-version
+    name: node:22
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        SHA=$$(sed -n 's/.*commit \([a-f0-9]*\).*/\1/p' bundle_description.txt)
+        if [ -z "$$SHA" ]; then
+          echo "ERROR: Failed to extract commit SHA from bundle_description.txt" >&2
+          exit 1
+        fi
+        echo "$$SHA" > /workspace/kvm_version.txt
+        echo "KVM version for prod: $$SHA"
+
+  # Create versioned KVM in prod with prod-specific values
+  - id: create-kvm-prod
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args: ['-c', 'bash scripts/create-versioned-kvm.sh ${_TARGET_ORG} ${_TARGET_ENV} "$$(cat /workspace/kvm_version.txt)"']
+
   - id: deploy-prod
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
@@ -54,7 +79,7 @@ steps:
       - |
         npm run test:prod || { echo "Prod smoke tests failed!" >&2; touch /workspace/prod_test_failed; }
 
-  # Rollback prod if test-prod failed
+  # Rollback prod if test-prod failed (old revision has its own KVM — automatic)
   - id: check-prod-test
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
@@ -77,6 +102,7 @@ steps:
       - |
         echo "released from:     ${_SOURCE_ORG} / ${_SOURCE_ENV} revision $$(cat ${_SOURCE_ENV}_revision.txt)"
         echo "released to:       ${_TARGET_ORG} / ${_TARGET_ENV} revision $$(cat ${_TARGET_ENV}_revision.txt)"
+        echo "kvm version:       $$(cat /workspace/kvm_version.txt)"
         echo "bundle stamp:      $$(cat bundle_description.txt)"
         echo "build:             ${BUILD_ID}"
 

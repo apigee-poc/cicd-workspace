@@ -1,0 +1,9 @@
+{
+  "name": "hello-v1-config",
+  "encrypted": true,
+  "entries": [
+    { "name": "greeting-prefix", "value": "Hello" },
+    { "name": "max-name-length", "value": "30" },
+    { "name": "environment-label", "value": "Production" }
+  ]
+}
