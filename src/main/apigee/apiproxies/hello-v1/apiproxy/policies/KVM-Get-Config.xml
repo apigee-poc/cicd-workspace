@@ -31,4 +31,9 @@
       <Parameter>environment-label</Parameter>
     </Key>
   </Get>
+  <Get assignTo="config.commit">
+    <Key>
+      <Parameter>commit</Parameter>
+    </Key>
+  </Get>
 </KeyValueMapOperations>

@@ -9,6 +9,7 @@
 # For each definition file:
 #   1. Creates the KVM named "<base_name>-<version_suffix>" (encrypted by default)
 #   2. Creates all entries with values from the definition file
+#   3. Ensures a 'commit' entry is populated with <version_suffix>
 #
 # Idempotent: safe to run multiple times (409 on existing KVM/entry is handled).
 set -euo pipefail
@@ -67,13 +68,25 @@ for DEF_FILE in "${KVM_DIR}"/*.json; do
     exit 1
   fi
 
-  # Create entries from the definition file
+  # Create entries from definition file + ensure commit entry matches VERSION
   "${PY}" -c "
 import json, sys
 data = json.load(sys.stdin)
-for entry in data.get('entries', []):
-    print(json.dumps({'name': entry['name'], 'value': str(entry['value'])}))
-" < "${DEF_FILE}" | while IFS= read -r ENTRY_JSON; do
+version = sys.argv[1]
+entries = data.get('entries', [])
+has_commit = False
+for entry in entries:
+    name = entry['name']
+    val = str(entry['value'])
+    if val == '__KVM_VERSION__':
+        val = version
+    if name == 'commit':
+        has_commit = True
+        val = version
+    print(json.dumps({'name': name, 'value': val}))
+if not has_commit:
+    print(json.dumps({'name': 'commit', 'value': version}))
+" "${VERSION}" < "${DEF_FILE}" | while IFS= read -r ENTRY_JSON; do
     ENTRY_NAME="$("${PY}" -c "import json,sys; print(json.load(sys.stdin)['name'])" <<< "${ENTRY_JSON}")"
     echo "  Setting entry: ${ENTRY_NAME}"
 

@@ -4,6 +4,7 @@
   "entries": [
     { "name": "greeting-prefix", "value": "Hello" },
     { "name": "max-name-length", "value": "30" },
-    { "name": "environment-label", "value": "Staging" }
+    { "name": "environment-label", "value": "Staging" },
+    { "name": "commit", "value": "__KVM_VERSION__" }
   ]
 }
