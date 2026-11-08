@@ -46,13 +46,8 @@ steps:
     args:
       - -c
       - |
-        SHA=$$(sed -n 's/.*commit \([a-f0-9]*\).*/\1/p' bundle_description.txt)
-        if [ -z "$$SHA" ]; then
-          echo "ERROR: Failed to extract commit SHA from bundle_description.txt" >&2
-          exit 1
-        fi
-        echo "$$SHA" > /workspace/kvm_version.txt
-        echo "KVM version for prod: $$SHA"
+        sed -n 's/.*commit \([a-f0-9]*\).*/\1/p' bundle_description.txt > /workspace/kvm_version.txt
+        echo "KVM version for prod: $$(cat /workspace/kvm_version.txt)"
 
   # Create versioned KVM in prod with prod-specific values
   - id: create-kvm-prod

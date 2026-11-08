@@ -26,20 +26,18 @@ steps:
     args:
       - -c
       - |
-        PROXY_DIR=src/main/apigee/apiproxies/hello-v1/apiproxy
-
         # Stamp the proxy description (existing)
-        sed -i 's#<Description>.*</Description>#<Description>hello-v1 | commit ${SHORT_SHA} | build ${BUILD_ID}</Description>#' \
-          "$PROXY_DIR/hello-v1.xml"
+        sed -i 's#<Description>.*</Description>#'"<Description>hello-v1 | commit ${SHORT_SHA} | build ${BUILD_ID}</Description>#" \
+          src/main/apigee/apiproxies/hello-v1/apiproxy/hello-v1.xml
 
         # Stamp KVM version into all policies that use the placeholder
-        find "$PROXY_DIR/policies" -name '*.xml' -exec \
+        find src/main/apigee/apiproxies/hello-v1/apiproxy/policies -name '*.xml' -exec \
           sed -i "s/__KVM_VERSION__/${SHORT_SHA}/g" {} +
 
         # Log what was stamped
         echo "Stamped commit ${SHORT_SHA} and KVM version"
-        grep '<Description>' "$PROXY_DIR/hello-v1.xml"
-        grep -r 'mapIdentifier' "$PROXY_DIR/policies/" || true
+        grep '<Description>' src/main/apigee/apiproxies/hello-v1/apiproxy/hello-v1.xml
+        grep -r 'mapIdentifier' src/main/apigee/apiproxies/hello-v1/apiproxy/policies/ || true
 
   # Quality gate 1
   - id: lint
