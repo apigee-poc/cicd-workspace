@@ -33,7 +33,7 @@
               "});",
               "",
               "pm.test(\"Body has the expected greeting\", function () {",
-              "    pm.expect(pm.response.json().message).to.eql(\"Hello, Rizk! invalid name\");",
+              "    pm.expect(pm.response.json().message).to.eql(\"Hello, Rizk!\");",
               "});",
               
               "pm.test(\"Body has the environment name\", function () {",
