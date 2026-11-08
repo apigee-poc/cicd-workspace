@@ -35,9 +35,16 @@
               "pm.test(\"Body has the expected greeting\", function () {",
               "    pm.expect(pm.response.json().message).to.eql(\"Hello, Rizk!\");",
               "});",
-              
               "pm.test(\"Body has the environment name\", function () {",
               "    pm.expect(pm.response.json().environment).to.eql(pm.environment.get(\"expectedEnv\"));",
+              "});",
+              "",
+              "pm.test(\"Body has commit and matching KVM name\", function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property(\"commit\");",
+              "    pm.expect(json).to.have.property(\"kvm\");",
+              "    pm.expect(json.kvm).to.have.property(\"name\");",
+              "    pm.expect(json.kvm.name).to.include(\"hello-v1-config\");",
               "});"
             ]
           }
@@ -47,7 +54,6 @@
         "method": "GET",
         "header": [],
         "url": {
-          
           "raw": "{{baseUrl}}/v1/hello?name=Rizk",
           "host": [
             "{{baseUrl}}"
